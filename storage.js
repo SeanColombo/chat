@@ -174,13 +174,8 @@ RedisStorage.prototype = {
                                 var parts = usersInRoomKey.split(':');
                                 var roomId = parts[1];
                                 self.getRoomData(roomId, 'wgCityId', function(wgCityId) {
-                                        if(self.config.validateConnection(wgCityId)) {
-                                                logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
-                                                self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
-                                                logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
-                                        } else {
-                                                logger.debug("\tNot cleaning users out of room with key: " + usersInRoomKey);
-                                        }
+                                        logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
+                                        self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
                                 });
                         });
                 },
