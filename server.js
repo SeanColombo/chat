@@ -257,29 +257,6 @@ function authConnection(socket, next){
 	var key = handshakeData.query.key;
 
 	var callback = function(data) {
-		if(!config.validateConnection(data.wgCityId)) {
-			logger.warning("User failed authentication. Wrong node js server for : ", data);
-			//authcallback(null, false); // error first callback style
-			next(new Error('User failed authentication. Wrong node js server (1)'));
-			return false;
-		}
-
-		if(!data.activeBasket) {
-			logger.warning("User failed authentication. Wrong node js server for : " + data.wgCityId);
-			next(new Error('User failed authentication. Wrong node js server (2)'));
-			//authcallback(null, false); // error first callback style
-			return false;
-		}
-
-		if(!config.validateActiveBasket(data.activeBasket)) {
-			io.sockets.emit({
-				event: 'disableReconnect'
-			});
-
-			logger.error('this basket of servers is not valid now and it should not be in use we are going to disconnect every one');
-			next(new Error('Invalid server configuration.'));
-			//authcallback(null, false); // error first callback style
-		}
 
 		if((data.canChat) && (data.isLoggedIn) && data.username == name ){
 			var errback = function() {
