@@ -54,31 +54,6 @@ exports.NUM_MESSAGES_TO_SHOW_ON_CONNECT = chatConfig['NumMessagesToShowOnConnect
 
 exports.TOKEN = chatConfig['ChatCommunicationToken'];
 
-exports.validateConnection = function(cityId) {
-	//TODO: take this out when we will be operating on 2 servers
-	return true;
-	if(typeof arvg.instance != 'undefined') {
-		if(arvg.instance == cityId%instanceCount){
-			return true;
-		}
-		return false;
-	}
-	return false;
-}
-
-exports.validateActiveBasket = function(basket) {
-	//TODO: take this out when we will be operating on 2 servers
-	return true;
-
-	if(typeof arvg.basket != 'undefined') {
-		if(arvg.basket == basket){
-			return true;
-		}
-		return false;
-	}
-	return false;
-}
-
 exports.logLevel = (typeof arvg.loglevel != 'undefined') ? arvg.loglevel : "CRITICAL" ;
 
 //TODO move this to other file
