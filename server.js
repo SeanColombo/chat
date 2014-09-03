@@ -730,8 +730,11 @@ function kickUserFromServer(client, socket, userToKick, roomId){
 		// redis. Setting this variable here lets clientDisconnect() know not to delete the user from the
 		// room in redis.
 		setTimeout(function(){
-			socket.connected[kickedClientId].doNotRemoveFromRedis = true;
-			socket.connected[kickedClientId].disconnect();
+			if (socket.connected[kickedClientId]) {
+				socket.connected[kickedClientId].doNotRemoveFromRedis = true;
+				socket.connected[kickedClientId].disconnect();
+
+			}
 		}, 1000);
 		// This closes the connection (takes a few seconds) after calling the clientDisconnect() handler which will
 		// broadcast the 'part' and delete the session id from the sessionIdsByKey hash.
