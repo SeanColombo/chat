@@ -878,19 +878,19 @@ function broadcastChatEntryToRoom(client, socket, chatEntry, callback){
  * 'callback' is optional, if defined it will be called after the broadcasting is complete.
  */
 
-//TODO: use native join/emit from 0.7 sockets.io
 function broadcastToRoom(client, socket, data, users, callback){
 	var roomId = client.roomId;
 	// Get the set of members from redis.
 	logger.debug("Broadcasting to room " + roomId);
 	storage.getUsersInRoom(roomId, function(usernameToUser) {
-		logger.debug("Raw data from key " + config.getKey_usersInRoom( roomId ) + ": ", "usernameToData:", users);
+		logger.debug("Raw data from key " + config.getKey_usersInRoom( roomId ) + ": ", "usernameToUser:", usernameToUser);
 
 		var usernameToUserFiltered = {};
 
+		// users is only non-empty if we are sending to a private room (filtered list)
 		if((users instanceof Array) && users.length > 0) {
 			for( var i in users ) {
-				if(typeof(usernameToUser[users[i]]) != 'undefined') {
+				if(usernameToUser && typeof(usernameToUser[users[i]]) != 'undefined') {
 					usernameToUserFiltered[users[i]] = usernameToUser[users[i]];
 				}
 			}
