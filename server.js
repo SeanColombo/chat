@@ -258,7 +258,9 @@ function authConnection(socket, next){
 
 	var callback = function(data) {
 
-		if((data.canChat) && (data.isLoggedIn) && data.username_encoded == name ){
+		var usernameOk = (data.username_encoded == name) || (data.username == name);
+
+		if(data.canChat && data.isLoggedIn && usernameOk){
 			var errback = function() {
 				logger.info("User tried to connect with someone elses private room");
 				next(new Error('User tried to connect with someone elses private room'));
