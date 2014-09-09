@@ -118,8 +118,8 @@ var requestMW = function(method, roomId, postdata, query, handshake, callback, e
 						headers: headers,
 						body: postdata,
 						json: false,
-						url: requestUrl,
-						proxy: 'http://' + config.WIKIA_PROXY
+						url: requestUrl
+						//proxy: 'http://' + config.WIKIA_PROXY
 					},
 					function (error, response, body) {
 						if (handleRedirect(response)) { // cross-server 301 handling
