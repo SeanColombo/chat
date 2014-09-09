@@ -243,7 +243,7 @@ function authConnection(socket, next){
 	logger.debug("Authentication info recieved from client. Verifying with Wikia MediaWiki app server...");
 	// Need to auth with the correct wiki. Lookup the hostname for the chat in redis.
 	handshakeData = socket.handshake;
-	console.log("auth");
+
 	console.log(socket.handshake);
 	if(!handshakeData.query.roomId || !handshakeData.query.name || !handshakeData.query.key) {
 		logger.warning("Wrong handshake data");
@@ -258,7 +258,8 @@ function authConnection(socket, next){
 
 	var callback = function(data) {
 
-		var usernameOk = (data.username_encoded == name) || (data.username == name);
+		var usernameOk = (data.username_encoded == name) || (unescape(data.username) == unescape(name))
+		logger.debug("auth test: " + data.username_encoded + "==" + data.username + "==" + unescape(data.username) + "==" + name);
 
 		if(data.canChat && data.isLoggedIn && usernameOk){
 			var errback = function() {
