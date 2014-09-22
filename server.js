@@ -5,7 +5,6 @@ var app = require('express')()
 	, server = require('http').Server(app)
     , io = require('socket.io')(server)
     , jade = require('jade')
-    , util = require('util')
     , _ = require('underscore')._
     , Backbone = require('backbone')
     , storage = require('./storage').redisFactory()
