@@ -155,6 +155,10 @@ function messageDispatcher(client, socket, data){
 			logger.error("Error: while parsing raw incoming json (to msg dispatcher). Error was: ", e, "JSON-string that didn't parse was:\n" + data);
 			return true;
 		}
+		if(!dataObj) {
+			logger.error("Error: Null object while parsing incoming json. JSON-string that didn't parse was:\n" + data);
+			return true;
+		}
 		if(typeof dataObj.attrs == 'undefined'){
 			dataObj.attrs = {};
 		}
