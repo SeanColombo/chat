@@ -223,17 +223,22 @@ setInterval(function() {
 	}
 }, 5000);
 
-WMBridge.prototype.ban = function(roomId, name, handshake ,time, reason, key, success, error) {
-	clearAuthenticateCache(roomId, name);
-	var requestUrl = getUrl('blockOrBanChat', {
+WMBridge.prototype.ban = function(client, name, time, reason, success, error) {
+	var roomId = client.roomId,
+		handshake = client.handshake,
+		key = client.userKey,
+		userIP = client.request.connection.remoteAddress,
+		requestUrl = getUrl('blockOrBanChat', {
 		roomId: roomId,
 		userToBan: urlencode(name),
 		time: urlencode(time),
 		reason: urlencode(reason),
 		mode: 'global',
 		key: key,
-		userIP: (handshake.address && handshake.address.address) || ''
+		userIP: userIP || ''
 	});
+
+	clearAuthenticateCache(roomId, name);
 
 	requestMW('GET', roomId, {}, requestUrl, handshake, function(data){
 		// Process response from MediaWiki server and then kick the user from all clients.
