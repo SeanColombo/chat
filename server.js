@@ -130,7 +130,7 @@ function messageDispatcher(client, socket, data){
 	// The user is authed. Check to make sure their client sessionId still exists. If it doesn't, we probably banned them.
 	var sessionId = false;
 	if(typeof client.myUser != 'undefined' && typeof client.myUser.get != 'undefined'){
-			var sessionId = sessionIdsByKey[config.getKey_userInRoom(client.myUser.get('name'), client.roomId)];
+		sessionId = sessionIdsByKey[config.getKey_userInRoom(client.myUser.get('name'), client.roomId)];
 	}
 	if(sessionId === false || (typeof sessionId == "undefined") || (sessionId != client.sessionId)){
 		client.json.send({

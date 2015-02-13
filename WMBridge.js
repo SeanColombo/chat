@@ -227,7 +227,7 @@ WMBridge.prototype.ban = function(client, name, time, reason, success, error) {
 	var roomId = client.roomId,
 		handshake = client.handshake,
 		key = client.userKey,
-		userIP = client.request.connection.remoteAddress,
+		userIP = client.handshake.headers['X-Forwarded-For'] || client.request.connection.remoteAddress,
 		requestUrl = getUrl('blockOrBanChat', {
 		roomId: roomId,
 		userToBan: urlencode(name),
