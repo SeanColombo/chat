@@ -127,7 +127,6 @@ function api_getDefaultRoomId(cityId, extraDataString, type, serializedUsers, su
  */
 function api_createChatRoom(cityId, extraDataString, type, users, successCallback, errorCallback) {
 	storage.createChatRoom(cityId, extraDataString, type, users, successCallback, errorCallback);
-	
 } // end api_createChatRoom()
 
 /**

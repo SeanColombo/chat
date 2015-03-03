@@ -20,7 +20,6 @@ var lastTs = 0;
 * send data to event tracing server
 *
 */
-
 var send = function(data) {
 	data.track_id = trackId;
 
@@ -55,7 +54,6 @@ var send = function(data) {
  * track server start
  *
  */
-
 exports.trackServerStart = function() {
 	var data = {
 		"action": "server_start",
@@ -71,7 +69,6 @@ exports.trackServerStart = function() {
  * track connect/disconnect/logout
  *
  */
-
 exports.trackEvent = function(client, action) {
 	var data = {
 		"username": client.username,

@@ -1,7 +1,7 @@
 /**
  * @author Jacek 'mech' Wozniak
  *
- * This file contains chat loggin class and some socket.io logger related hacks.
+ * This file contains chat logging class and some socket.io logger related hacks.
  * 
  */
 

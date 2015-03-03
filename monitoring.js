@@ -6,7 +6,6 @@ var logger = require('./logger').logger;
 /**
  * get cpu % usege
  */
-
 function execCMD(com, callback) {
 	var exec = require('child_process').exec;
 	var puts = function(error, stdout, stderr) { callback(parseFloat(stdout)) };	

@@ -22,7 +22,7 @@ var app = require('express')()
 //	process.exit(1);
 //});
 
-/** DONE WITH CONFIGS & REQUIRES... BELOW IS THE ACTUAL APP CODE! **/
+/** DONE WITH LOADING THE CONFIGS & REQUIRES... BELOW IS THE ACTUAL APP CODE! **/
 
 monitoring.startMonitoring(50000, storage);
 
@@ -52,16 +52,13 @@ logger.info("Pruning old room memberships...");
 storage.purgeAllMembers();
 
 logger.info('Configured to listen on http://' +  config.CHAT_SERVER_HOST + ':' + config.CHAT_SERVER_PORT);
-
 server.listen(config.CHAT_SERVER_PORT, config.CHAT_SERVER_HOST, function () {
 	var addr = server.address();
 	logger.info('   app listening on http://' + addr.address + ':' + addr.port);
 });
 
-//server.listen()
 
 logger.info("Updating runtime stats");
-
 storage.getRuntimeStats(function(data) {
 	var started = parseInt(new Date().getTime());
 	if ( (!data) || isNaN(data.runtime) || isNaN(data.laststart))  {
@@ -363,16 +360,15 @@ function finishConnectingUser(client, socket ){
 	storage.getRoomState(client.roomId, function(nodeChatModel) {
 		// Initial connection of the user (unless they're already connected).
 		var connectedUser = nodeChatModel.users.findByName(client.username);
-                newConnectedUser = new models.User({
-                	name: client.username,
-                        avatarSrc: client.avatarSrc,
-                        isModerator: client.isChatMod,
-                        isCanGiveChatMod: client.isCanGiveChatMod,
-                        isStaff: client.isStaff,
-                        editCount: client.editCount,
-                        since: client.wikiaSince
-                });
-
+		newConnectedUser = new models.User({
+			name: client.username,
+			avatarSrc: client.avatarSrc,
+			isModerator: client.isChatMod,
+			isCanGiveChatMod: client.isCanGiveChatMod,
+			isStaff: client.isStaff,
+			editCount: client.editCount,
+			since: client.wikiaSince
+		});
 
 		if(connectedUser) {
 			nodeChatModel.users.remove(connectedUser);
@@ -391,7 +387,7 @@ function finishConnectingUser(client, socket ){
 		}
 
 		// If this same user is already in the sessionIdsByKey hash, then they must be connected in
-		// another browser. Kick that other instance before continuing (multiple instances cause all kinds of weirdness.
+		// another browser. Kick that other instance before continuing (multiple instances cause all kinds of weirdness).
 		var existingId = sessionIdsByKey[config.getKey_userInRoom(client.myUser.get('name'), client.roomId)];
 
 		logger.debug("existingId: " + existingId );

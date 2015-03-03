@@ -167,21 +167,25 @@ RedisStorage.prototype = {
 				errback);
 	},
 	
-        purgeAllMembers: function(callback, errback) {
-                var self = this;
-                self._keys(self.config.getKeyPrefix_usersInRoom()+":*", function(data) {
-                        _.each(data, function(usersInRoomKey) {
-                                var parts = usersInRoomKey.split(':');
-                                var roomId = parts[1];
-                                self.getRoomData(roomId, 'wgCityId', function(wgCityId) {
-                                        logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
-                                        self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
-                                });
-                        });
-                },
-                'Error: while trying to get all room membership lists: %error%',
-                errback);
-        },
+	/**
+	 * This will delete all connections from Redis. This is NOT safe to use when
+	 * we have multiple instances of the Node server running.
+	 */
+	purgeAllMembers: function(callback, errback) {
+		var self = this;
+		self._keys(self.config.getKeyPrefix_usersInRoom()+":*", function(data) {
+			_.each(data, function(usersInRoomKey) {
+				var parts = usersInRoomKey.split(':');
+				var roomId = parts[1];
+				self.getRoomData(roomId, 'wgCityId', function(wgCityId) {
+					logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
+					self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
+				});
+			});
+		},
+		'Error: while trying to get all room membership lists: %error%',
+		errback);
+	},
 	
 	getUsersAllowedInPrivateRoom: function(roomId, callback, errback) {
 		this._hkeys(this.config.getKey_usersAllowedInPrivRoom(roomId), callback,
