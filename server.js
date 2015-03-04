@@ -48,7 +48,7 @@ app.get('/*', function(req, res){
 });
 
 logger.info("== RESTART INFO ==");
-logger.info("Next room id: " + storage._get(self.config.getKey_nextRoomId()));
+logger.info("Next room id: " + storage._get(config.getKey_nextRoomId()));
 
 // TODO: MUST REMOVE THIS WHEN WE HAVE MULTIPLE NODE SERVERS! (and figure out another solution to prune entries who are no longer connected... perhaps prune any time you try to send to them & they're not there?).
 logger.info("Pruning old room memberships...");

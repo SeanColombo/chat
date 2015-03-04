@@ -4,6 +4,8 @@
  *
  * NOTE: DO NOT START THIS SCRIPT DIRECTLY.  The API is controlled by
  * the same server.js file and its functions are just included from in there.
+ *
+ * This API server is used for filling requests from the MediaWiki server.
  */
 
 var config = require("./server_config.js"); // our node-chat config
@@ -16,7 +18,6 @@ var logger = require('./logger').logger;
 http.createServer(function (req, res) {
 	var reqData = urlUtil.parse(req.url, true);
 	apiDispatcher(req, res, reqData, function(result){
-		resg = res; // macbre: is this variable needed?
 		// SUCCESS CALLBACK
 		res.writeHead(200, {'Content-Type': 'application/json'});
 		res.write( JSON.stringify( result ) );
