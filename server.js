@@ -84,36 +84,43 @@ function startServer() {
 
 	storage.resetUserCount();
 
-	io.on('connection', function(socket){
+	// Every time this server gets a connection, it will do this setup for that new client socket.
+	io.on('connection', function(clientSocket){
 
 		console.log("connection");
-		console.log(socket.handshake);
+		console.log(clientSocket.handshake);
 
-		//TODO: use client.handshake.clientData and remove rewrite
-		if(!socket.handshake || !socket.handshake.clientData) {
+		if(!clientSocket.handshake || !clientSocket.handshake.clientData) {
 			return false;
 		}
 
-		for(var key in socket.handshake.clientData) {
-			socket[key] = socket.handshake.clientData[key];
+		//TODO: Consider using client.handshake.clientData everywhere and remove rewrite
+		for(var key in clientSocket.handshake.clientData) {
+			// ClientData was just being used to smuggle data (such as username, avatarSrc, etc.)
+			// from the authConnection. Now that it's here, we can put those keys directly on the
+			// object to make them easier to access. This might be less confusing to skip this
+			// rewriting here, and just leave it as .handshake.clientData everywhere.
+			clientSocket[key] = clientSocket.handshake.clientData[key];
 		}
 		monitoring.incrEventCounter('connects');
 		storage.increaseUserCount(1);
 
 		// On initial connection, just wait around for the client to send it's authentication info.
-		socket.on('message', function(msg){
-			messageDispatcher(socket, io.sockets, msg);}
+		clientSocket.on('message', function(msg){
+			messageDispatcher(clientSocket, io.sockets, msg);}
 		);
 
-		socket.on('disconnect', function(){
+		clientSocket.on('disconnect', function(){
 			monitoring.incrEventCounter('disconnects');
 			storage.increaseUserCount(-1);
-			clientDisconnect(socket, io.sockets);
+			clientDisconnect(clientSocket, io.sockets);
 		});
 
-		socket.sessionId = socket.id; // why?
+		// Why? Seems only for readability. Kinda weird (even though it's probably never going
+		// to be overwritten, it's duplicate state which can be dangerous if you ever write to it).
+		clientSocket.sessionId = clientSocket.id;
 
-		clearChatBuffer(socket);
+		clearChatBuffer(clientSocket);
 
 		logger.debug("Raw connection recieved. Waiting for authentication info from client.");
 	});
@@ -123,7 +130,7 @@ function startServer() {
  * Bound to the 'message' event, gets any message from the client. If the user
  * is not authenticated, this won't listen to anything other than authentications.
  */
-function messageDispatcher(client, socket, data){
+function messageDispatcher(client, ioSockets, data){
 	// The user is authed. Check to make sure their client sessionId still exists. If it doesn't, we probably banned them.
 	var sessionId = false;
 	if(typeof client.myUser != 'undefined' && typeof client.myUser.get != 'undefined'){
@@ -166,7 +173,7 @@ function messageDispatcher(client, socket, data){
 		switch(dataObj.attrs.msgType){
 			case 'chat':
 				logger.debug("Dispatching to message handler.");
-				chatMessage(client, socket, data);
+				chatMessage(client, ioSockets, data);
 				client.msgCount++;
 				break;
 			case 'command':
@@ -176,27 +183,27 @@ function messageDispatcher(client, socket, data){
 						break;
 					case 'logout':
 						logger.debug("Loging out user: " + client.myUser.get('name'));
-						logout(client, socket, data);
+						logout(client, ioSockets, data);
 						break;
 					case 'kick':
 						logger.info("Kicking user: " + dataObj.attrs.userToKick);
-						kick(client, socket, data);
+						kick(client, ioSockets, data);
 						break;
 					case 'ban':
 						logger.info("Banning user: " + dataObj.attrs.userToBan);
-						ban(client, socket, data);
+						ban(client, ioSockets, data);
 						break;
 					case 'openprivate':
 						logger.debug( "openPrivateRoom" );
-						openPrivateRoom(client, socket, data);
+						openPrivateRoom(client, ioSockets, data);
 						break;
 					case 'givechatmod':
 						logger.info("Giving chatmoderator status to user: " + dataObj.attrs.userToPromote);
-						giveChatMod(client, socket, data);
+						giveChatMod(client, ioSockets, data);
 						break;
 					case 'setstatus':
 						logger.debug("Setting status for " + client.myUser.get('name') + " to " + dataObj.attrs.statusState + " with message '" + dataObj.attrs.statusMessage + "'.");
-						setStatus(client, socket, data);
+						setStatus(client, ioSockets, data);
 						break;
 					default:
 						logger.warning("Unrecognized command: " + dataObj.attrs.command);
@@ -215,13 +222,13 @@ function messageDispatcher(client, socket, data){
  *  open private chat with other users
  */
 
-function openPrivateRoom(client, socket, data){
+function openPrivateRoom(client, ioSockets, data){
 	var roomInfo = new models.OpenPrivateRoom();
 	roomInfo.mport(data);
 
 	storage.getUsersAllowedInPrivateRoom(roomInfo.get('roomId'), function(users) {
 		var privateRoom = new models.OpenPrivateRoom( { roomId : roomInfo.get('roomId'), users: users } );
-		broadcastToRoom(client, socket, {
+		broadcastToRoom(client, ioSockets, {
 			event: 'openPrivateRoom',
 			data: privateRoom.xport()
 		}, users);
@@ -272,26 +279,29 @@ function authConnection(socket, next){
 
 			storage.getUsersAllowedInPrivateRoom(roomId, function(users) {
 				if(users.length == 0 || _.indexOf(users, data.username) !== -1 ) { //
-					var client = {};
-					client.userKey = key;
-					client.msgCount = 0;
-					client.username = data.username;
-					client.avatarSrc = data.avatarSrc;
-					client.isChatMod = data.isChatMod;
-					client.editCount = data.editCount;
-					client.wikiaSince = data.since;
-					client.isCanGiveChatMod = data.isCanGiveChatMod;
-					client.isStaff = data.isStaff;
-					client.roomId = roomId;
-					client.cityId = data.wgCityId;
-					client.privateRoom = !(users.length == 0);
+					var clientData = {};
+					clientData.userKey = key;
+					clientData.msgCount = 0;
+					clientData.username = data.username;
+					clientData.avatarSrc = data.avatarSrc;
+					clientData.isChatMod = data.isChatMod;
+					clientData.editCount = data.editCount;
+					clientData.wikiaSince = data.since;
+					clientData.isCanGiveChatMod = data.isCanGiveChatMod;
+					clientData.isStaff = data.isStaff;
+					clientData.roomId = roomId;
+					clientData.cityId = data.wgCityId;
+					clientData.privateRoom = !(users.length == 0);
 					// TODO: REFACTOR THIS TO TAKE ANY FIELDS THAT data GIVES IT.
-					client.ATTEMPTED_NAME = data.username;
+					clientData.ATTEMPTED_NAME = data.username;
 					// User has been approved & their data has been set on the client. Put them into the chat.
-					client.wgServer = data.wgServer;
-					client.wgArticlePath = data.wgArticlePath;
+					clientData.wgServer = data.wgServer;
+					clientData.wgArticlePath = data.wgArticlePath;
 
-					handshakeData.clientData = client;
+					// We need to smuggle this data to the 'connection' callback in a new
+					// key called "clientData". Then clientData will then be unpacked onto
+					// the clientSocket itself.
+					handshakeData.clientData = clientData;
 					logger.debug("User authentication success.");
 					monitoring.incrEventCounter('logins');
 					next();
@@ -354,7 +364,7 @@ function sendRoomDataToClient(client) {
  * This is called after the result from the MediaWiki server has set up this client's user-info.
  * This adds the user to the room in redis and sends the initial state to the client.
  */
-function finishConnectingUser(client, socket ){
+function finishConnectingUser(client, ioSockets ){
 	logger.debug( 'finishConnectingUser:' + (new Date().getTime()));
 
 	storage.getRoomState(client.roomId, function(nodeChatModel) {
@@ -392,7 +402,7 @@ function finishConnectingUser(client, socket ){
 
 		logger.debug("existingId: " + existingId );
 
-		var oldClient = existingId != "undefined" ? socket.connected[existingId] : false;
+		var oldClient = existingId != "undefined" ? ioSockets.connected[existingId] : false;
 
 		if(oldClient && oldClient.userKey != client.userKey ){
 			logger.debug("oldClient key:" + oldClient.userKey);
@@ -406,12 +416,12 @@ function finishConnectingUser(client, socket ){
 				// Looks like we're kicking ourself, but since we're not in the sessionIdsByKey map yet,
 				// this will only kick the other instance of this same user connected to the room.
 				logger.debug('kickUserFromRoom');
-					kickUserFromRoom(oldClient, socket, client.myUser, client.roomId, function(){
+					kickUserFromRoom(oldClient, ioSockets, client.myUser, client.roomId, function(){
 					logger.debug('kickUserFromRoom call back');
 					// This needs to be done after the user is removed from the room.  Since clientDisconnect() is called asynchronously,
 					// the user is explicitly removed from the room first, then clientDisconnect() is prevented from attempting to remove
 					// the user (since that may get called at some point after formallyAddClient() adds the user intentionally).
-					formallyAddClient(client, socket, connectedUser);
+					formallyAddClient(client, ioSockets, connectedUser);
 				});
 			});
 		} else {
@@ -427,7 +437,7 @@ function finishConnectingUser(client, socket ){
                                 }, 1000 * 30);
 			}
 			// Put the user info into the room hash in redis, and add the client to the in-memory (not redis) hash of connected sockets.
-			formallyAddClient(client, socket, connectedUser);
+			formallyAddClient(client, ioSockets, connectedUser);
 		}
 	});
 } // end finishConnectingUser()
@@ -438,7 +448,7 @@ function finishConnectingUser(client, socket ){
  * This should only be done after any duplicates of this user have been ejected from the room already (in the case
  * of the same user connecting from multiple browsers).
  */
-function formallyAddClient(client, socket, connectedUser){
+function formallyAddClient(client, ioSockets, connectedUser){
 	// Add the user to the set of users in the room in redis.
 	var userData = client.myUser.attributes;
 	delete userData.id;
@@ -451,7 +461,7 @@ function formallyAddClient(client, socket, connectedUser){
 		function() {	// in original code it was done it both cases (success and error) so I do it the same way
 			// Broadcast the join to all clients.
 			logger.debug(new Date().getTime());
-			broadcastToRoom(client, socket, {
+			broadcastToRoom(client, ioSockets, {
 				event: 'join',
 				data: connectedUser.xport()
 			});
@@ -467,7 +477,7 @@ function formallyAddClient(client, socket, connectedUser){
  * If client has property 'doNotRemoveFromRedis' set to true, then the user will be removed from the room hash in redis (this is used
  * sometimes to prevent race conditions).
  */
-function clientDisconnect(client, socket) {
+function clientDisconnect(client, ioSockets) {
 	logger.debug("clientDisconnect");
 	// Remove the in-memory mapping of this user in this room to their sessionId
 	if(typeof client.myUser != 'undefined' && typeof client.myUser.get != 'undefined'){
@@ -481,11 +491,11 @@ function clientDisconnect(client, socket) {
 	// Remove the user from the set of usernames in the current room (in redis).
 	if(client.doNotRemoveFromRedis){
 //		logger.debug("Not removing user from room, just broadcasting their part & the associated inline alert for " + client.myUser.get('name'));
-		broadcastDisconnectionInfo(client, socket);
+		broadcastDisconnectionInfo(client, ioSockets);
 	} else if(typeof client.myUser != 'undefined' && typeof client.myUser.get != 'undefined'){
 		logger.debug("Disconnected: " + client.myUser.get('name') + " and about to remove them from the room in redis & broadcast the part and InlineAlert...");
 		storage.removeUserData(client.roomId, client.myUser.get('name'), function(data) {
-			broadcastDisconnectionInfo(client, socket);
+			broadcastDisconnectionInfo(client, ioSockets);
 		});
 	}
 } // end clientDisconnect()
@@ -493,7 +503,7 @@ function clientDisconnect(client, socket) {
 /**
  * After a client has been disconnected, broadcast the part and the associated inline-alert to all remaining members of the room.
  */
-function broadcastDisconnectionInfo(client, socket){
+function broadcastDisconnectionInfo(client, ioSockets){
 	// Delay before sending part messages because there are occasional disconnects/reconnects or just ppl refreshing their browser
 	// and that's really not useful information to anyone that under-the-hood they were disconnected for a moment (BugzId 5753).
 
@@ -508,7 +518,7 @@ function broadcastDisconnectionInfo(client, socket){
 	var partEvent = new models.PartEvent({
 		name: client.myUser.get('name')
 	});
-	broadcastToRoom(client, socket, {
+	broadcastToRoom(client, ioSockets, {
         	event: 'part',
         	data: partEvent.xport()
 	});
@@ -544,7 +554,7 @@ function broadcastUserListToMediaWiki(client, removeClient){
 /**
  * Processes a message sent by a client (and broadcasts it out to all users in the same room).
  */
-function chatMessage(client, socket, msg){
+function chatMessage(client, ioSockets, msg){
 	var chatEntry = new models.ChatEntry();
     chatEntry.mport(msg);
 	// messages sent from client cannot be inline, as those messages are not escaped
@@ -565,10 +575,10 @@ function chatMessage(client, socket, msg){
 	}
 	//chatEntry.set({ isInlineAlert: false}); // not needed, as we ingore those messages
     monitoring.incrEventCounter('chat_messages');
-	storeAndBroadcastChatEntry(client, socket, chatEntry);
+	storeAndBroadcastChatEntry(client, ioSockets, chatEntry);
 } // end chatMessage()
 
-function logout(client, socket, msg) {
+function logout(client, ioSockets, msg) {
 	var logoutEvent = new models.LogoutEvent({
 		name: client.myUser.get('name')
 	});
@@ -576,7 +586,7 @@ function logout(client, socket, msg) {
 	tracker.trackEvent(client, 'logout');
 	client.logout = true;
 	// I'm still not sure if we should call kickUserFromRoom here or not...
-	broadcastToRoom(client, socket, {
+	broadcastToRoom(client, ioSockets, {
 			event: 'logout',
 			data: logoutEvent.xport()
 		},
@@ -591,7 +601,7 @@ function logout(client, socket, msg) {
 /**
  * Kicks the specified user, then broadcasts the effects to other users.
  */
-function kick(client, socket, msg){
+function kick(client, ioSockets, msg){
 	var kickCommand = new models.KickCommand();
     kickCommand.mport(msg);
 
@@ -608,14 +618,14 @@ function kick(client, socket, msg){
 					kickedUserName: kickedUser.get('name'),
 					moderatorName: client.myUser.get('name')
 				});
-				broadcastToRoom(client, socket, {
+				broadcastToRoom(client, ioSockets, {
 						event: 'kick',
 						data: kickEvent.xport()
 					},
 					null,
 					function() {
 						client.donotSendPart = true;
-						kickUserFromRoom(client, socket, kickedUser, client.roomId);
+						kickUserFromRoom(client, ioSockets, kickedUser, client.roomId);
 					}
 				);
 			}
@@ -627,7 +637,7 @@ function kick(client, socket, msg){
 /**
  * Kicks and bans the specified user, then broadcasts the effects to other users.
  */
-function ban(client, socket, msg){
+function ban(client, ioSockets, msg){
 	var banCommand = new models.BanCommand();
     banCommand.mport(msg);
 
@@ -644,14 +654,14 @@ function ban(client, socket, msg){
     		reason: reason
     	});
 
-    	broadcastToRoom(client, socket, {
+    	broadcastToRoom(client, ioSockets, {
 			event: 'ban',
 			data: kickEvent.xport()
 		},
 		null,
 		function() {
 			client.donotSendPart = true;
-			kickUserFromRoom(client, socket, userToBanObj, client.roomId);
+			kickUserFromRoom(client, ioSockets, userToBanObj, client.roomId);
 		});
 
 	}, function(data){
@@ -662,7 +672,7 @@ function ban(client, socket, msg){
 /**
  * Add the chatmoderator group to the user whose username is specified in the command (if allowed).
  */
-function giveChatMod(client, socket, msg){
+function giveChatMod(client, ioSockets, msg){
 	var giveChatModCommand = new models.GiveChatModCommand();
 	giveChatModCommand.mport(msg);
 
@@ -681,10 +691,10 @@ function giveChatMod(client, socket, msg){
 
 			promotedUser.set('isModerator', true);
 
-			broadcastInlineAlert(client, socket, 'chat-inlinealert-a-made-b-chatmod', [client.myUser.get('name'), promotedUser.get('name')], function() {
+			broadcastInlineAlert(client, ioSockets, 'chat-inlinealert-a-made-b-chatmod', [client.myUser.get('name'), promotedUser.get('name')], function() {
 				storage.setUserData(client.roomId, promotedUser.get('name'), promotedUser.attributes, null, null, function() {
 					// Broadcast the user as an update to everyone in the room
-					broadcastToRoom(client, socket, {
+					broadcastToRoom(client, ioSockets, {
 						event: 'updateUser',
 						data: promotedUser.xport()
 					});
@@ -700,11 +710,11 @@ function giveChatMod(client, socket, msg){
  * Given a User model and a room id, disconnect the client if that username has a client connected. Also,
  * remove them from the room hash in redis.
  */
-function kickUserFromRoom(client, socket, userToKick, roomId, callback){
+function kickUserFromRoom(client, ioSockets, userToKick, roomId, callback){
 	// Removing the user from the room.
 	logger.debug("Kicking " + userToKick.get('name') + " from room " + roomId);
 	storage.removeUserData(roomId, userToKick.get('name'), function() {
-		kickUserFromServer(client, socket, userToKick, roomId);
+		kickUserFromServer(client, ioSockets, userToKick, roomId);
 
 		if(typeof callback == "function"){
 			callback();
@@ -717,14 +727,14 @@ function kickUserFromRoom(client, socket, userToKick, roomId, callback){
  * This only closes their connection, but does not delete their entry from the room in redis. If you
  * want to remove the user from the room also, use kickUserFromRoom() instead.
  */
-function kickUserFromServer(client, socket, userToKick, roomId){
+function kickUserFromServer(client, ioSockets, userToKick, roomId){
 	// Force-close the kicked user's connection so that they can't interact anymore.
 	logger.debug("Force-closing connection for kicked user: " + userToKick.get('name'));
 	var kickedClientId = sessionIdsByKey[config.getKey_userInRoom(userToKick.get('name'), roomId)];
 
 	if(typeof kickedClientId != 'undefined'){
 		// If we're kicking the user (for whatever reason) they shouldn't try to auto-reconnect.
-		socket.connected[kickedClientId].json.send({
+		ioSockets.connected[kickedClientId].json.send({
 			event: 'disableReconnect'
 		});
 
@@ -732,26 +742,26 @@ function kickUserFromServer(client, socket, userToKick, roomId){
 		// redis. Setting this variable here lets clientDisconnect() know not to delete the user from the
 		// room in redis.
 		setTimeout(function(){
-			if (socket.connected[kickedClientId]) {
-				socket.connected[kickedClientId].doNotRemoveFromRedis = true;
-				socket.connected[kickedClientId].disconnect();
+			if (ioSockets.connected[kickedClientId]) {
+				ioSockets.connected[kickedClientId].doNotRemoveFromRedis = true;
+				ioSockets.connected[kickedClientId].disconnect();
 
 			}
 		}, 1000);
 		// This closes the connection (takes a few seconds) after calling the clientDisconnect() handler which will
 		// broadcast the 'part' and delete the session id from the sessionIdsByKey hash.
 
-		//clientDisconnect(socket.socket(kickedClientId), socket);
+		//clientDisconnect(ioSockets.socket(kickedClientId), ioSockets);
 		// NOTE: This is the way fzysqr does it (as opposed to the ._onDisconnect() done above).  It might close the connection more quickly (the _onDisconnect() works and is tested but the client stays open for a few seconds).
-		//socket.clients[kickedClientId].send({ event: 'disconnect' });
-		//socket.clients[kickedClientId].connection.end();
+		//ioSockets.clients[kickedClientId].send({ event: 'disconnect' });
+		//ioSockets.clients[kickedClientId].connection.end();
 	}
 } // end kickUserFromServer()
 
 /**
  * Sets the current user's status and broadcasts it out to the other users in the same room.
  */
-function setStatus(client, socket, setStatusData){
+function setStatus(client, ioSockets, setStatusData){
 
 	logger.debug("SetStatusCommand", setStatusData);
 	logger.debug("SetStatusCommand1");
@@ -771,7 +781,7 @@ function setStatus(client, socket, setStatusData){
 			storage.setUserData(roomId, userName, userData, null, null, function() {
 				// Broadcast the user as an update to everyone in the room
 				var userToUpdate = new models.User( userData );
-				broadcastToRoom(client, socket, {
+				broadcastToRoom(client, ioSockets, {
 					event: 'updateUser',
 					data: userToUpdate.xport()
 				});
@@ -814,16 +824,16 @@ function sendInlineAlertToClient(client, text, wfMsg, msgParams, callback){
  * NOTE: Not using this for join/part/banned anymore because of https://wikia.fogbugz.com/default.asp?4766
  * Those messages are now transient/ephemeral and are just sent with broadcastInlineAlert
  */
-function storeAndBroadcastInlineAlert(client, socket, text, callback){
+function storeAndBroadcastInlineAlert(client, ioSockets, text, callback){
 	var inlineAlert = new models.InlineAlert({text: text});
-	storeAndBroadcastChatEntry(client, socket, inlineAlert, callback);
+	storeAndBroadcastChatEntry(client, ioSockets, inlineAlert, callback);
 } // end storeAndBroadcastInlineAlert()
 
 /**
  * Given a ChatEntry (which might be of the InlineAlert subclass), store it to the model and
  * broadcast it to all of the clients in the room.
  */
-function storeAndBroadcastChatEntry(client, socket, chatEntry, callback){
+function storeAndBroadcastChatEntry(client, ioSockets, chatEntry, callback){
 	storage.getNextChatEntryId(function(newId) {
 		// Set the id from redis, and the name/avatar based on what we KNOW this client's credentials to be.
 		// Originally, the client may spoof a name/avatar, but we will ignore what they gave us and override them here.
@@ -841,7 +851,7 @@ function storeAndBroadcastChatEntry(client, socket, chatEntry, callback){
 
         storage.addChatEntry(client.roomId, chatEntry.xport(), null, null, function() {
 			// Send to everyone in the room.
-			broadcastChatEntryToRoom(client, socket, chatEntry, callback);
+			broadcastChatEntryToRoom(client, ioSockets, chatEntry, callback);
         });
 	});
 } // end chatMessage()
@@ -853,21 +863,21 @@ function storeAndBroadcastChatEntry(client, socket, chatEntry, callback){
  * @param wfMsg - the MediaWiki message name (will be translated client-side).
  * @param msgParams - an array containing the parameters (if any) to be passed in with the i18n message to $.msg().
  */
-function broadcastInlineAlert(client, socket, wfMsg, msgParams, callback){
+function broadcastInlineAlert(client, ioSockets, wfMsg, msgParams, callback){
 	var inlineAlert = new models.InlineAlert({
 		text: '',
 		wfMsg: wfMsg,
 		msgParams: msgParams
 	});
-	broadcastChatEntryToRoom(client, socket, inlineAlert, callback);
+	broadcastChatEntryToRoom(client, ioSockets, inlineAlert, callback);
 } // end broadcastInlineAlert()
 
 /**
  * Send the 'chat:add' update to all clients in the chat room.  This assumes that the caller
  * has already added the chatEntry to the model if it wants the chatEntry to be in the model.
  */
-function broadcastChatEntryToRoom(client, socket, chatEntry, callback){
-	broadcastToRoom(client, socket, {
+function broadcastChatEntryToRoom(client, ioSockets, chatEntry, callback){
+	broadcastToRoom(client, ioSockets, {
 		event: 'chat:add',
 		data:chatEntry.xport()
 	},[], callback);
@@ -880,7 +890,7 @@ function broadcastChatEntryToRoom(client, socket, chatEntry, callback){
  * 'callback' is optional, if defined it will be called after the broadcasting is complete.
  */
 
-function broadcastToRoom(client, socket, data, users, callback){
+function broadcastToRoom(client, ioSockets, data, users, callback){
 	var roomId = client.roomId;
 	// Get the set of members from redis.
 	logger.debug("Broadcasting to room " + roomId);
@@ -907,16 +917,20 @@ function broadcastToRoom(client, socket, data, users, callback){
 
 			if(socketId){
 				//logger.debug("============ SOCKET "+socketId+" ==========================================");
-				//logger.debug(socket.socket(socketId));
+				//logger.debug(ioSockets.socket(socketId));
 				//logger.debug("============ /SOCKET "+socketId+" ==========================================");
 
-				if( typeof socket.connected[socketId].sessionId  == "undefined"){
+				if( typeof ioSockets.connected[socketId].sessionId  == "undefined"){
 					// This happened once (and before this check was here, crashed the server).  Not sure if this is just a normal side-effect of the concurrency or is a legit
 					// problem. This logging should help in debugging if this becomes an issue.
 					logger.warning("Somehow the client socket for " + userModel.get('name') + " is totally closed but their socketId is still in the hash. Potentially a race-condition?");
 					delete sessionIdsByKey[ config.getKey_userInRoom(userModel.get('name'), roomId) ];
 				} else {
-					io.sockets.connected[socketId].json.send(data);
+					// SWC 20150303 - just noticed this method has been using the global io.sockets instead of the
+					// local ioSockets var. That's probably fairly equivalent at the moment... but we should def. use
+					// the local var if it is going to exist at all.
+					//io.sockets.connected[socketId].json.send(data);
+					ioSockets.connected[socketId].json.send(data);
 				}
 			}
 		});

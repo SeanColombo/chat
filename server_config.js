@@ -6,13 +6,15 @@
  * COMMAND LINE ARGUMENTS:
  *  mode -     this will say which configuration block to use from the config/ChatConfig.json file. Some
  *             valid options are "prod", "dev", "preview", or "verify".
- *  basket -   which 'basket' to run as. The baskets will be different "servers" that the user can connect to
- *             based on the wiki-global: "wgChatServersBasket" value in WikiFactory. This is used to move big
- *             wikis around to balance the load. All wikis currently default to basket 1 if wgChatServersBasket is
- *             not set.
- *  instance - sort of a process-number. Each basket is configured to have several instances, each with their
+ *  basket -   which 'basket' to run as. The baskets will be different collections of servers. This is
+ *             controlled by the "wgChatServersBasket" value of COMMUNITY WIKI... meaning: all wikis share
+ *             the same value from Community as opposed to using the value from their own wiki as is more
+ *             common for WikiFactory vars. The main purpose of this basket is so that one value can be changed
+ *             on community and all wikis will instantly switch over to another batch of servers. That is used
+ *             to do fail-over when one entire batch of servers is hosed.
+ *  instance - sort of a server-number. Each basket is configured to have several instances, each with their
  *             own hostname:port combo. Wikis will connect to an instance based on a % of their wgCityId and how
- *             many instances are available in their basket (this logic is in ChatHelper.php).
+ *             many instances are available in the current basket (this logic is in ChatHelper.php).
  */
 
 var md5 = require("./lib/md5.js").md5;
