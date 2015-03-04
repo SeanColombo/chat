@@ -47,6 +47,9 @@ app.get('/*', function(req, res){
     res.send('ok');
 });
 
+logger.info("== RESTART INFO ==");
+logger.info("Next room id: " + storage._get(self.config.getKey_nextRoomId()));
+
 // TODO: MUST REMOVE THIS WHEN WE HAVE MULTIPLE NODE SERVERS! (and figure out another solution to prune entries who are no longer connected... perhaps prune any time you try to send to them & they're not there?).
 logger.info("Pruning old room memberships...");
 storage.purgeAllMembers();
@@ -94,7 +97,7 @@ function startServer() {
 			return false;
 		}
 
-		//TODO: Consider using client.handshake.clientData everywhere and remove rewrite
+		// NOTE: Consider using client.handshake.clientData everywhere (in functions that use client) and remove rewrite
 		for(var key in clientSocket.handshake.clientData) {
 			// ClientData was just being used to smuggle data (such as username, avatarSrc, etc.)
 			// from the authConnection. Now that it's here, we can put those keys directly on the

@@ -117,8 +117,8 @@ RedisStorage.prototype = {
 	/**
 	 * Set the room data
 	 * @param roomId room identifier
-	 * @param key key to set, if null then value can containg multiple entries
-	 * @param value single value if key is specified or multipl ewhen key is null
+	 * @param key key to set, if null then value can containing multiple entries
+	 * @param value single value if key is specified or multiple when key is null
 	 */
 	setRoomData: function(roomId, key, value, callback, errback) {
 		var roomKey = this.config.getKey_room(roomId);
@@ -168,7 +168,7 @@ RedisStorage.prototype = {
 	},
 	
 	/**
-	 * This will delete all connections from Redis. This is NOT safe to use when
+	 * This will delete all room-membership lists from Redis. This is NOT safe to use when
 	 * we have multiple instances of the Node server running.
 	 */
 	purgeAllMembers: function(callback, errback) {
@@ -177,6 +177,8 @@ RedisStorage.prototype = {
 			_.each(data, function(usersInRoomKey) {
 				var parts = usersInRoomKey.split(':');
 				var roomId = parts[1];
+				// TODO: INVESTIGATE: WHY DO WE DO A getRoomData() HERE? I don't see how that wgCityId is needed to do the deletion.
+				// TODO: Should we be deleting the roomData also? That would result in the wiki getting a new room id which it shouldn't.
 				self.getRoomData(roomId, 'wgCityId', function(wgCityId) {
 					logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
 					self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
@@ -351,6 +353,13 @@ RedisStorage.prototype = {
 		var self = this;
 		self._rc.hgetall(key, function(err, result) {
 			self._redisCallback(err, result, callback, errorMsg, errback, both, formatResult);
+		});
+	},
+	
+	_get: function(key, callback, errorMsg, errback, both){
+		var self = this;
+		self._rc.get(key, function(err, result) {
+			self._redisCallback(err, result, callback, errorMsg, errback, both);
 		});
 	},
 	

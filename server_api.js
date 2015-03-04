@@ -90,6 +90,7 @@ function api_getDefaultRoomId(cityId, extraDataString, type, serializedUsers, su
 		} catch(err) {}
 	}
 
+	// If getListOfRooms fails for this cityId, we will create a room for that wiki.
 	var createRoom = function() {
 		api_createChatRoom(cityId, extraDataString, type, users, successCallback, errorCallback);
 	};
@@ -97,7 +98,8 @@ function api_getDefaultRoomId(cityId, extraDataString, type, serializedUsers, su
 	storage.getListOfRooms(cityId, type, users,
 		function(roomIds) {
 			if(roomIds){
-				// For now, if there is more than one wiki in the room, we just grab the first as the default room.
+				// For now, if there is more than one room for the wiki, we just grab the first as the default room.
+				// NOTE: We still haven't implemented multiple rooms per wiki... might not become a Product priority.
 				roomId = roomIds[0];
 				storage.getRoomData(roomId, null,
 					function(roomData) {
