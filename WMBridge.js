@@ -179,39 +179,41 @@ var WMBridge = function() {
 //	var GIVECHATMOD_URL = "/?action=ajax&rs=ChatAjax&method=giveChatMod";
 }
 
-                                
+
 var authenticateUserCache = {};
 
 var clearAuthenticateCache = function(roomId, name) {
 	var cacheKey = name + "_" + roomId;
-        if(authenticateUserCache[cacheKey]) {
+	if(authenticateUserCache[cacheKey]) {
 		delete authenticateUserCache[cacheKey];
 	}
 }
 
 WMBridge.prototype.authenticateUser = function(roomId, name, key, handshake, success, error) {
-        var cacheKey = name + "_" + roomId;
-        if(authenticateUserCache[cacheKey] && authenticateUserCache[cacheKey].key == key ) {
-                return success(authenticateUserCache[cacheKey].data);
-        }
+	var cacheKey = name + "_" + roomId;
+	// This cache is only secure because it's checking the .key alongside the cacheKey (cacheKey can be forged,
+	// but the forger would not also know the 'key' which MediaWiki generates.
+	if(authenticateUserCache[cacheKey] && authenticateUserCache[cacheKey].key == key ) {
+		return success(authenticateUserCache[cacheKey].data);
+	}
 
-        var requestUrl = getUrl( 'getUserInfo', {
-                roomId: roomId,
-                name: urlencode(name),
-                key: key
-        });
-        
-        logger.debug(requestUrl);
-		var ts = Math.round((new Date()).getTime() / 1000);
-		monitoring.incrEventCounter('authenticateUserRequest');
-		requestMW( 'GET', roomId, {}, requestUrl, handshake, function(data) {
-			authenticateUserCache[cacheKey] = {
-				data: data,
-				key: key,
-				ts: ts
-			};
-			success(data);
-		}, error );
+	var requestUrl = getUrl( 'getUserInfo', {
+		roomId: roomId,
+		name: urlencode(name),
+		key: key
+	});
+
+	logger.debug(requestUrl);
+	var ts = Math.round((new Date()).getTime() / 1000);
+	monitoring.incrEventCounter('authenticateUserRequest');
+	requestMW( 'GET', roomId, {}, requestUrl, handshake, function(data) {
+		authenticateUserCache[cacheKey] = {
+			data: data,
+			key: key,
+			ts: ts
+		};
+		success(data);
+	}, error );
 }
 
 setInterval(function() {
@@ -272,20 +274,19 @@ WMBridge.prototype.giveChatMod = function(roomId, name, handshake, key, success,
 
 var setUsersList = function(roomId, users) {
 	monitoring.incrEventCounter('broadcastUserList');
-        var requestUrl = getUrl('setUsersList', {
-                roomId: roomId,
-                token: config.TOKEN
-        });
+	var requestUrl = getUrl('setUsersList', {
+		roomId: roomId,
+		token: config.TOKEN
+	});
 
-        var userToSend = [];
+	var userToSend = [];
 
-        for(var userName in users) {
-                userToSend.push(userName);
-        }
+	for(var userName in users) {
+		userToSend.push(userName);
+	}
 
-        requestMW('POST', roomId, {users: userToSend}, requestUrl, null, function(data){
-
-        });
+	requestMW('POST', roomId, {users: userToSend}, requestUrl, null, function(data){
+	});
 }
 
 var setUsersListQueue = {};
@@ -296,10 +297,10 @@ WMBridge.prototype.setUsersList = function(roomId, users) {
 
 
 setInterval(function() {
-        for (i in setUsersListQueue){
-	        setUsersList(i, setUsersListQueue[i]);
+	for (i in setUsersListQueue){
+		setUsersList(i, setUsersListQueue[i]);
 		delete setUsersListQueue[i];
-        }
+	}
 }, 10000);
 
 

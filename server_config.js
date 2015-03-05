@@ -2,6 +2,19 @@
  * @author Sean Colombo
  *
  * This file contains config that will be used by both the node chat server and the Node Chat API.
+ *
+ * COMMAND LINE ARGUMENTS:
+ *  mode -     this will say which configuration block to use from the config/ChatConfig.json file. Some
+ *             valid options are "prod", "dev", "preview", or "verify".
+ *  basket -   which 'basket' to run as. The baskets will be different collections of servers. This is
+ *             controlled by the "wgChatServersBasket" value of COMMUNITY WIKI... meaning: all wikis share
+ *             the same value from Community as opposed to using the value from their own wiki as is more
+ *             common for WikiFactory vars. The main purpose of this basket is so that one value can be changed
+ *             on community and all wikis will instantly switch over to another batch of servers. That is used
+ *             to do fail-over when one entire batch of servers is hosed.
+ *  instance - sort of a server-number. Each basket is configured to have several instances, each with their
+ *             own hostname:port combo. Wikis will connect to an instance based on a % of their wgCityId and how
+ *             many instances are available in the current basket (this logic is in ChatHelper.php).
  */
 
 var md5 = require("./lib/md5.js").md5;
@@ -80,7 +93,7 @@ exports.getKey_sessionData = function(key){ return "session_data:" + key; }
 exports.getKey_room = function(roomId){ return exports.getKeyPrefix_room() + ":" + roomId; }
 exports.getKey_userInRoom = function(userName, roomId){
 	// Key representing the presence of a single user in a specific room (that user may be in multiple rooms).
-	// used by the in-memory sessionIdByKey hash, not by redis.. so not prefixed.
+	// used by the in-memory sessionIdsByKey hash, not by redis.. so not prefixed.
 	return roomId + ":" + userName;
 }
 
