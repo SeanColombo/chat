@@ -168,20 +168,29 @@ RedisStorage.prototype = {
 	},
 	
 	/**
-	 * This will delete all room-membership lists from Redis. This is NOT safe to use when
-	 * we have multiple instances of the Node server running.
+	 * This will delete all room-membership (for the given instance) from Redis. This will cause
+	 * those rooms to be considered empty again, and if any users thought they were connected, they
+	 * will have to reconnect.
+	 *
+	 * This is typically used when starting a server-instance so that if this was a restart, the previous
+	 * occupants get cleaned out.
 	 */
-	purgeAllMembers: function(callback, errback) {
+	purgeAllMembersFromInstance: function(instanceNumber, callback, errback) {
 		var self = this;
 		self._keys(self.config.getKeyPrefix_usersInRoom()+":*", function(data) {
 			_.each(data, function(usersInRoomKey) {
 				var parts = usersInRoomKey.split(':');
 				var roomId = parts[1];
-				// TODO: INVESTIGATE: WHY DO WE DO A getRoomData() HERE? I don't see how that wgCityId is needed to do the deletion.
-				// TODO: Should we be deleting the roomData also? That would result in the wiki getting a new room id which it shouldn't.
+				
+				// Look up the wgCityId so that we can figure out what instance the room belongs to.
 				self.getRoomData(roomId, 'wgCityId', function(wgCityId) {
-					logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
-					self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
+					// Only purge the users for the current instance.
+					// NOTE: This functionality is designed to mirror what's in ChatHelper.php::getServer().
+					var roomInstance = ((wgCityId % self.config.INSTANCE_COUNT) + 1);
+					if(roomInstance == instanceNumber){
+						logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
+						self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
+					}
 				});
 			});
 		},
