@@ -27,7 +27,7 @@ var app = require('express')()
 monitoring.startMonitoring(50000, storage);
 
 // This includes and starts the API server (which MediaWiki makes requests to).
-logger.info("== Starting the API Server ==");
+logger.info("== Starting the API Server: instance " + config.INSTANCE + "==");
 require("./server_api.js");
 
 // Start the Node Chat server (which browsers connect to).
@@ -57,7 +57,7 @@ logger.info("Next room id: " + storage._get(config.getKey_nextRoomId()));
 
 // TODO: MUST REMOVE THIS WHEN WE HAVE MULTIPLE NODE SERVERS! (and figure out another solution to prune entries who are no longer connected... perhaps prune any time you try to send to them & they're not there?).
 logger.info("Pruning old room memberships...");
-storage.purgeAllMembers();
+storage.purgeAllMembersFromInstance(config.INSTANCE);
 
 logger.info('Configured to listen on http://' +  config.CHAT_SERVER_HOST + ':' + config.CHAT_SERVER_PORT);
 server.listen(config.CHAT_SERVER_PORT, config.CHAT_SERVER_HOST, function () {
@@ -849,9 +849,7 @@ function storeAndBroadcastChatEntry(client, ioSockets, chatEntry, callback){
 			// Normally, we trust the client.myUser (it's attached to the socket) but if they mismatch, if that wasn't
 			// done intentionally by an attacker, then we likely had the session-swapping bug. Our current hypothesis is
 			// that the bug is caused by thousands of users trying to reconnect simultaneously.
-			logger.critical("-- SOCKETSWAPPING -- USER HAS LIKELY HAD THEIR SOCKET SWITCHED (that or" +
-				" they're manually attempting to spoof a message: unlikely). WE GOT A MESSAGE FROM USER " +chatEntry.get('name') +
-				" but it came through on the socket for +" + client.myUser.get('name'));
+			logger.critical("-- SOCKETSWAPPING-3 -- Got a message from user '" +chatEntry.get('name') + "' through socket for '" + client.myUser.get('name') +"'");
 		}
 
 		// Set the id from redis, and the name/avatar based on what we KNOW this client's credentials to be.
