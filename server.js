@@ -845,12 +845,12 @@ function storeAndBroadcastChatEntry(client, ioSockets, chatEntry, callback){
 	storage.getNextChatEntryId(function(newId) {
 		// The user sends their username along with the chat entry. Here we can verify that this matches
 		// the username on the socket. This will help us detect when sessions get garbled.
-		if(chatEntry.name != client.myUser.get('name')){
+		if(chatEntry.get('name') != client.myUser.get('name')){
 			// Normally, we trust the client.myUser (it's attached to the socket) but if they mismatch, if that wasn't
 			// done intentionally by an attacker, then we likely had the session-swapping bug. Our current hypothesis is
 			// that the bug is caused by thousands of users trying to reconnect simultaneously.
 			logger.critical("-- SOCKETSWAPPING -- USER HAS LIKELY HAD THEIR SOCKET SWITCHED (that or" +
-				" they're manually attempting to spoof a message: unlikely). WE GOT A MESSAGE FROM USER " +chatEntry.name +
+				" they're manually attempting to spoof a message: unlikely). WE GOT A MESSAGE FROM USER " +chatEntry.get('name') +
 				" but it came through on the socket for +" + client.myUser.get('name'));
 		}
 
