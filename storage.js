@@ -186,7 +186,7 @@ RedisStorage.prototype = {
 				self.getRoomData(roomId, 'wgCityId', function(wgCityId) {
 					// Only purge the users for the current instance.
 					// NOTE: This functionality is designed to mirror what's in ChatHelper.php::getServer().
-					var roomInstance = ((wgCityId % this.config.INSTANCE_COUNT) + 1);
+					var roomInstance = ((wgCityId % self.config.INSTANCE_COUNT) + 1);
 					if(roomInstance == instanceNumber){
 						logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
 						self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
