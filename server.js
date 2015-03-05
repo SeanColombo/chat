@@ -42,6 +42,11 @@ io.set('transports', [  'polling'  ]);
 //io.set('authorization', authConnection );
 io.use(authConnection);
 
+// TODO: CONSIDER USING THIS HEARTBEAT... I DON'T THINK WE HAD THEM WHEN WE STARTED... BUT I THINK OUR CODE
+// IS CURRENTLY NOT GREAT AT DETECTING DISCONNECTS (default values are 25s and 60s but that doesn't do it).
+//io.set("heartbeat timeout", 20000);
+//io.set("heartbeat interval", 10000);
+
 //setup route (just for healthcheck)
 app.get('/*', function(req, res){
     res.send('ok');
@@ -838,6 +843,17 @@ function storeAndBroadcastInlineAlert(client, ioSockets, text, callback){
  */
 function storeAndBroadcastChatEntry(client, ioSockets, chatEntry, callback){
 	storage.getNextChatEntryId(function(newId) {
+		// The user sends their username along with the chat entry. Here we can verify that this matches
+		// the username on the socket. This will help us detect when sessions get garbled.
+		if(chatEntry.name != client.myUser.get('name')){
+			// Normally, we trust the client.myUser (it's attached to the socket) but if they mismatch, if that wasn't
+			// done intentionally by an attacker, then we likely had the session-swapping bug. Our current hypothesis is
+			// that the bug is caused by thousands of users trying to reconnect simultaneously.
+			logger.critical("-- SOCKETSWAPPING -- USER HAS LIKELY HAD THEIR SOCKET SWITCHED (that or" +
+				" they're manually attempting to spoof a message: unlikely). WE GOT A MESSAGE FROM USER " +chatEntry.name +
+				" but it came through on the socket for +" + client.myUser.get('name'));
+		}
+
 		// Set the id from redis, and the name/avatar based on what we KNOW this client's credentials to be.
 		// Originally, the client may spoof a name/avatar, but we will ignore what they gave us and override them here.
 		var now = new Date();
