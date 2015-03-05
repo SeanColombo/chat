@@ -50,6 +50,7 @@ exports.CHAT_SERVER_PORT = parseInt(chatServer[1]);
 
 exports.BASKET = arvg.basket;
 exports.INSTANCE = arvg.instance + 1;
+exports.INSTANCE_COUNT = instanceCount;
 exports.API_SERVER_HOST = apiServer[0];
 exports.API_SERVER_PORT = parseInt(apiServer[1]);
 
