@@ -850,26 +850,31 @@ function storeAndBroadcastChatEntry(client, ioSockets, chatEntry, callback){
 			// done intentionally by an attacker, then we likely had the session-swapping bug. Our current hypothesis is
 			// that the bug is caused by thousands of users trying to reconnect simultaneously.
 			logger.critical("-- SOCKETSWAPPING-3 -- Got a message from user '" +chatEntry.get('name') + "' through socket for '" + client.myUser.get('name') +"'");
+			
+			// The user's sockets got confused in socket.io... have the user re-connect.
+			client.json.send({
+				event: 'forceReconnect'
+			});
+		} else {
+			// Set the id from redis, and the name/avatar based on what we KNOW this client's credentials to be.
+			// Originally, the client may spoof a name/avatar, but we will ignore what they gave us and override them here.
+			var now = new Date();
+			chatEntry.set({
+				id: newId,
+				name: client.myUser.get('name'),
+				avatarSrc: client.myUser.get('avatarSrc'),
+				text: chatEntry.get('text'),
+				timeStamp: now.getTime()
+			});
+
+			var expandedMsg = chatEntry.get('id') + ' ' + chatEntry.get('name') + ': ' + chatEntry.get('text');
+			logger.debug('(' + client.sessionId + ':' + chatEntry.get('name') + ') ' + expandedMsg);
+
+			storage.addChatEntry(client.roomId, chatEntry.xport(), null, null, function() {
+				// Send to everyone in the room.
+				broadcastChatEntryToRoom(client, ioSockets, chatEntry, callback);
+			});
 		}
-
-		// Set the id from redis, and the name/avatar based on what we KNOW this client's credentials to be.
-		// Originally, the client may spoof a name/avatar, but we will ignore what they gave us and override them here.
-		var now = new Date();
-		chatEntry.set({
-			id: newId,
-			name: client.myUser.get('name'),
-			avatarSrc: client.myUser.get('avatarSrc'),
-			text: chatEntry.get('text'),
-			timeStamp: now.getTime()
-		});
-
-        var expandedMsg = chatEntry.get('id') + ' ' + chatEntry.get('name') + ': ' + chatEntry.get('text');
-        logger.debug('(' + client.sessionId + ':' + chatEntry.get('name') + ') ' + expandedMsg);
-
-        storage.addChatEntry(client.roomId, chatEntry.xport(), null, null, function() {
-			// Send to everyone in the room.
-			broadcastChatEntryToRoom(client, ioSockets, chatEntry, callback);
-        });
 	});
 } // end chatMessage()
 
