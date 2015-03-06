@@ -29,6 +29,7 @@ monitoring.startMonitoring(50000, storage);
 // This includes and starts the API server (which MediaWiki makes requests to).
 logger.info("== Starting the API Server: instance " + config.INSTANCE + "==");
 require("./server_api.js");
+monitoring.incrEventCounter('server_startup');
 
 // Start the Node Chat server (which browsers connect to).
 logger.info("== Starting Node Chat Server ==");
