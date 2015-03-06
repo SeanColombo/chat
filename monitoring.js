@@ -69,16 +69,16 @@ function getRedisStats(storage, callback, errorCallback) {
 }
 
 exports.startMonitoring = startMonitoring = function(interval, storage) {   
-	    logger.info('startMonitoring...');
-        setInterval(function(){
-            getStats(storage, function(out){
-                    for( var i in out) {
-                            var CMDstring = 'gmetric --name="' + i + '_' + config.INSTANCE + '" --value='+ out[i] +' --type=float --unit=n --dmax=90 --group=Chat';
-                            execCMD(CMDstring, function() {});
-                            //logger.info(CMDstring);   
-                    }
-            });
-        }, interval);
+	logger.info('startMonitoring...');
+	setInterval(function(){
+		getStats(storage, function(out){
+			for( var i in out) {
+				var CMDstring = 'gmetric --name="' + i + '_' + config.INSTANCE + '" --value='+ out[i] +' --type=float --unit=n --dmax=90 --group=Chat';
+				execCMD(CMDstring, function() {});
+				//logger.info(CMDstring);   
+			}
+		});
+	}, interval);
 };
 
 /**
