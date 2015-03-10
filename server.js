@@ -27,9 +27,9 @@ var app = require('express')()
 monitoring.startMonitoring(50000, storage);
 
 // This includes and starts the API server (which MediaWiki makes requests to).
-logger.info("== Starting the API Server: instance " + config.INSTANCE + "==");
+logger.critical("== Starting the API Server: instance " + config.INSTANCE + "==");
 require("./server_api.js");
-monitoring.incrEventCounter('server_startup');
+monitoring.incrEventCounterUnsampled('server_startup');
 
 // Start the Node Chat server (which browsers connect to).
 logger.info("== Starting Node Chat Server ==");
@@ -43,10 +43,9 @@ io.set('transports', [  'polling'  ]);
 //io.set('authorization', authConnection );
 io.use(authConnection);
 
-// TODO: CONSIDER USING THIS HEARTBEAT... I DON'T THINK WE HAD THEM WHEN WE STARTED... BUT I THINK OUR CODE
-// IS CURRENTLY NOT GREAT AT DETECTING DISCONNECTS (default values are 25s and 60s but that doesn't do it).
-//io.set("heartbeat timeout", 20000);
-//io.set("heartbeat interval", 10000);
+// NOTE: Testing out these shorter heartbeats to improve disconnections. Default values are 25s and 60s but that doesn't work well.
+io.set("heartbeat timeout", 20000);
+io.set("heartbeat interval", 10000);
 
 //setup route (just for healthcheck)
 app.get('/*', function(req, res){
@@ -110,6 +109,8 @@ function startServer() {
 			// rewriting here, and just leave it as .handshake.clientData everywhere.
 			clientSocket[key] = clientSocket.handshake.clientData[key];
 		}
+		delete clientSocket.handshake.clientData; // clean up a small bit of memory.
+
 		monitoring.incrEventCounter('connects');
 		storage.increaseUserCount(1);
 
