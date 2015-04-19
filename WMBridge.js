@@ -182,21 +182,28 @@ var WMBridge = function() {
 
 var authenticateUserCache = {};
 
+/**
+ * Since there are a variety of encodings for usernames (spaces, underscores, and different
+ * encodings of UTF8) it actually turns out to be a lot safer to store the keys by room
+ * and clear the cache for an entire room at once. Otherwise, a user with weird-enough
+ * UTF8 characters could avoid having their auth info purged from the cache.
+ */
 var clearAuthenticateCache = function(roomId, name) {
-	var cacheKey = unescape(name + "_" + roomId).replace(/ /g, '_'); // use standardized formatting for usernames (MediaWiki allows spaces or underscores to be used interchangeably).
-logger.critical("CLEARING THE CACHE-KEY: " + cacheKey);
-	if(authenticateUserCache[cacheKey]) {
-		delete authenticateUserCache[cacheKey];
+//var cacheKey = unescape(name + "_" + roomId).replace(/ /g, '_'); // use standardized formatting for usernames (MediaWiki allows spaces or underscores to be used interchangeably).
+logger.critical("PURGING CACHED AUTH INFO FOR ROOM: " + roomId);
+	if(authenticateUserCache[roomId]) {
+		delete authenticateUserCache[roomId];
 	}
 }
 
 WMBridge.prototype.authenticateUser = function(roomId, name, key, handshake, success, error) {
-	var cacheKey = unescape(name + "_" + roomId).replace(/ /g, '_');
-	// This cache is only secure because it's checking the .key alongside the cacheKey (cacheKey can be forged,
-	// but the forger would not also know the 'key' which MediaWiki generates.
-	if(authenticateUserCache[cacheKey] && authenticateUserCache[cacheKey].key == key ) {
+	// This cache is only secure because it's checking the .key alongside the roomId/username (roomId
+	// and name can be spoofed, but the forger would not also know the 'key' which MediaWiki generates).
+	var normalizedName = unescape(name).replace(/ /g, '_');
+	if(authenticateUserCache[roomId] && authenticateUserCache[roomId][normalizedName]
+		&& (authenticateUserCache[roomId][normalizedName].key == key) ) {
 logger.critical("USED CACHE-KEY TO GRANT ACCESS: " + cacheKey);
-		return success(authenticateUserCache[cacheKey].data);
+		return success(authenticateUserCache[roomId][normalizedName].data);
 	}
 logger.critical("CACHE-KEY NOT FOUND IN CACHE: " + cacheKey + " WILL MAKE REQUEST TO MEDIAWIKI.");
 
@@ -210,7 +217,7 @@ logger.critical("CACHE-KEY NOT FOUND IN CACHE: " + cacheKey + " WILL MAKE REQUES
 	var ts = Math.round((new Date()).getTime() / 1000);
 	monitoring.incrEventCounter('authenticateUserRequest');
 	requestMW( 'GET', roomId, {}, requestUrl, handshake, function(data) {
-		authenticateUserCache[cacheKey] = {
+		authenticateUserCache[roomId][normalizedName] = {
 			data: data,
 			key: key,
 			ts: ts
