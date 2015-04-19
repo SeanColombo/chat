@@ -183,7 +183,7 @@ var WMBridge = function() {
 var authenticateUserCache = {};
 
 var clearAuthenticateCache = function(roomId, name) {
-	name = name.replace(/ /g, '_'); // use standardized formatting for usernames (MediaWiki allows spaces or underscores to be used interchangeably).
+	name = unescape(name).replace(/ /g, '_'); // use standardized formatting for usernames (MediaWiki allows spaces or underscores to be used interchangeably).
 	var cacheKey = name + "_" + roomId;
 logger.critical("CLEARING THE CACHE-KEY: " + cacheKey);
 	if(authenticateUserCache[cacheKey]) {
