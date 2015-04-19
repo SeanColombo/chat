@@ -202,10 +202,10 @@ WMBridge.prototype.authenticateUser = function(roomId, name, key, handshake, suc
 	var normalizedName = unescape(name).replace(/ /g, '_');
 	if(authenticateUserCache[roomId] && authenticateUserCache[roomId][normalizedName]
 		&& (authenticateUserCache[roomId][normalizedName].key == key) ) {
-logger.critical("USED CACHE-KEY TO GRANT ACCESS: " + cacheKey);
+logger.critical("USED CACHE-KEY TO GRANT ACCESS: '" + roomId +"::" + normalizedName + "'");
 		return success(authenticateUserCache[roomId][normalizedName].data);
 	}
-logger.critical("CACHE-KEY NOT FOUND IN CACHE: " + cacheKey + " WILL MAKE REQUEST TO MEDIAWIKI.");
+logger.critical("CACHE-KEY NOT FOUND IN CACHE: '" + roomId +"::" + normalizedName + "' WILL MAKE REQUEST TO MEDIAWIKI.");
 
 	var requestUrl = getUrl( 'getUserInfo', {
 		roomId: roomId,
