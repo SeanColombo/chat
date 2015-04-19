@@ -483,8 +483,8 @@ function formallyAddClient(client, ioSockets, connectedUser){
 /**
  * Called when a client disconnects from the server.
  *
- * If client has property 'doNotRemoveFromRedis' set to true, then the user will be removed from the room hash in redis (this is used
- * sometimes to prevent race conditions).
+ * If client has property 'doNotRemoveFromRedis' set to true, then the user will not be removed from the room hash
+ * in redis (this is used sometimes to prevent race conditions).
  */
 function clientDisconnect(client, ioSockets) {
 	logger.debug("clientDisconnect");

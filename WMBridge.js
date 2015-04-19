@@ -184,6 +184,7 @@ var authenticateUserCache = {};
 
 var clearAuthenticateCache = function(roomId, name) {
 	var cacheKey = name + "_" + roomId;
+logger.critical("CLEARING THE CACHE-KEY: " + cacheKey);
 	if(authenticateUserCache[cacheKey]) {
 		delete authenticateUserCache[cacheKey];
 	}
@@ -194,8 +195,10 @@ WMBridge.prototype.authenticateUser = function(roomId, name, key, handshake, suc
 	// This cache is only secure because it's checking the .key alongside the cacheKey (cacheKey can be forged,
 	// but the forger would not also know the 'key' which MediaWiki generates.
 	if(authenticateUserCache[cacheKey] && authenticateUserCache[cacheKey].key == key ) {
+logger.critical("USED CACHE-KEY TO GRANT ACCESS: " + cacheKey);
 		return success(authenticateUserCache[cacheKey].data);
 	}
+logger.critical("CACHE-KEY NOT FOUND IN CACHE: " + cacheKey + " WILL MAKE REQUEST TO MEDIAWIKI.");
 
 	var requestUrl = getUrl( 'getUserInfo', {
 		roomId: roomId,
