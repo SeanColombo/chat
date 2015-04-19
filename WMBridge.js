@@ -189,8 +189,9 @@ var authenticateUserCache = {};
  * UTF8 characters could avoid having their auth info purged from the cache.
  */
 var clearAuthenticateCache = function(roomId, name) {
-//var cacheKey = unescape(name + "_" + roomId).replace(/ /g, '_'); // use standardized formatting for usernames (MediaWiki allows spaces or underscores to be used interchangeably).
-logger.critical("PURGING CACHED AUTH INFO FOR ROOM: " + roomId);
+	// We purge the entire room, rather than the specific user because of variations in the way
+	// some usernames are URL/UTF8 encoded when they connect vs. when the Admin sends their name
+	// to be banned.
 	if(authenticateUserCache[roomId]) {
 		delete authenticateUserCache[roomId];
 	}
@@ -202,10 +203,10 @@ WMBridge.prototype.authenticateUser = function(roomId, name, key, handshake, suc
 	var normalizedName = unescape(name).replace(/ /g, '_');
 	if(authenticateUserCache[roomId] && authenticateUserCache[roomId][normalizedName]
 		&& (authenticateUserCache[roomId][normalizedName].key == key) ) {
-logger.critical("USED CACHE-KEY TO GRANT ACCESS: '" + roomId +"::" + normalizedName + "'");
+		logger.debug("Used authenticateUserCache to grant acess to: '" + roomId +"' for user '" + normalizedName + "'");
 		return success(authenticateUserCache[roomId][normalizedName].data);
 	}
-logger.critical("CACHE-KEY NOT FOUND IN CACHE: '" + roomId +"::" + normalizedName + "' WILL MAKE REQUEST TO MEDIAWIKI.");
+	logger.debug("User '" + normalizedName + "' not found in cache for roomId '"+roomId+"'. Server will make auth request to MediaWiki.");
 
 	var requestUrl = getUrl( 'getUserInfo', {
 		roomId: roomId,
