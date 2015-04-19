@@ -217,6 +217,11 @@ logger.critical("CACHE-KEY NOT FOUND IN CACHE: '" + roomId +"::" + normalizedNam
 	var ts = Math.round((new Date()).getTime() / 1000);
 	monitoring.incrEventCounter('authenticateUserRequest');
 	requestMW( 'GET', roomId, {}, requestUrl, handshake, function(data) {
+		if(!authenticateUserCache[roomId]){
+			// Initialize cache for room, if needed.
+			authenticateUserCache[roomId] = {};
+		}
+		// Cache entry for this user.
 		authenticateUserCache[roomId][normalizedName] = {
 			data: data,
 			key: key,
