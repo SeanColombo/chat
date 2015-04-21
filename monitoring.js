@@ -6,7 +6,6 @@ var logger = require('./logger').logger;
 /**
  * get cpu % usege
  */
-
 function execCMD(com, callback) {
 	var exec = require('child_process').exec;
 	var puts = function(error, stdout, stderr) { callback(parseFloat(stdout)) };	
@@ -70,16 +69,16 @@ function getRedisStats(storage, callback, errorCallback) {
 }
 
 exports.startMonitoring = startMonitoring = function(interval, storage) {   
-	    logger.info('startMonitoring...');
-        setInterval(function(){
-            getStats(storage, function(out){
-                    for( var i in out) {
-                            var CMDstring = 'gmetric --name="' + i + '_' + config.INSTANCE + '" --value='+ out[i] +' --type=float --unit=n --dmax=90 --group=Chat';
-                            execCMD(CMDstring, function() {});
-                            //logger.info(CMDstring);   
-                    }
-            });
-        }, interval);
+	logger.info('startMonitoring...');
+	setInterval(function(){
+		getStats(storage, function(out){
+			for( var i in out) {
+				var CMDstring = 'gmetric --name="' + i + '_' + config.INSTANCE + '" --value='+ out[i] +' --type=float --unit=n --dmax=90 --group=Chat';
+				execCMD(CMDstring, function() {});
+				//logger.info(CMDstring);   
+			}
+		});
+	}, interval);
 };
 
 /**
@@ -93,10 +92,11 @@ exports.startMonitoring = startMonitoring = function(interval, storage) {
  *  - removing samples from redis db (24h)
  *  - sampling rate (10 secs)
  *  - sum_range (10 minutes)
- *  - flusing from memory to db (30 seconds)
+ *  - flushing from memory to db (30 seconds)
  */
 
 var eventSamples = {};
+var unsampledEvents = {};
 var resultCache = {};
 
 var SAMPLING_RATE = 10000;		// internal sampling ratio
@@ -116,7 +116,26 @@ function getEventsStats(data) {
 		cleanUpSamples(eventName, tsLimit);
 		data['event_' + eventName] = resultCache[eventName];
 	}
+	
+	// NOTE: Unsampled events will overwrite corresponding sampled events if those  exist (do not
+	// send sampled incr calls if using unsampled calls, it's just a waste of time).
+	for(eventName in unsampledEvents) {
+		data['event_' + eventName] = unsampledEvents[eventName];
+	}
 	return data;
+};
+
+/**
+ * Allows incrementing an unsampled event. NOTE: Do NOT use this function to increment values
+ * that are also incremented using incrEventCounter (the sampled version). If there is a conflict,
+ * the unsampled data will be used.
+ */
+exports.incrEventCounterUnsampled = incrEventCounterUnsampled = function(eventName) {
+	if(!eventName in unsampledEvents){
+		unsampledEvents[eventName] = 1;
+	} else {
+		unsampledEvents[eventName]++;
+	}
 };
 
 exports.incrEventCounter = incrEventCounter = function(eventName) {

@@ -117,8 +117,8 @@ RedisStorage.prototype = {
 	/**
 	 * Set the room data
 	 * @param roomId room identifier
-	 * @param key key to set, if null then value can containg multiple entries
-	 * @param value single value if key is specified or multipl ewhen key is null
+	 * @param key key to set, if null then value can containing multiple entries
+	 * @param value single value if key is specified or multiple when key is null
 	 */
 	setRoomData: function(roomId, key, value, callback, errback) {
 		var roomKey = this.config.getKey_room(roomId);
@@ -167,21 +167,36 @@ RedisStorage.prototype = {
 				errback);
 	},
 	
-        purgeAllMembers: function(callback, errback) {
-                var self = this;
-                self._keys(self.config.getKeyPrefix_usersInRoom()+":*", function(data) {
-                        _.each(data, function(usersInRoomKey) {
-                                var parts = usersInRoomKey.split(':');
-                                var roomId = parts[1];
-                                self.getRoomData(roomId, 'wgCityId', function(wgCityId) {
-                                        logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
-                                        self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
-                                });
-                        });
-                },
-                'Error: while trying to get all room membership lists: %error%',
-                errback);
-        },
+	/**
+	 * This will delete all room-membership (for the given instance) from Redis. This will cause
+	 * those rooms to be considered empty again, and if any users thought they were connected, they
+	 * will have to reconnect.
+	 *
+	 * This is typically used when starting a server-instance so that if this was a restart, the previous
+	 * occupants get cleaned out.
+	 */
+	purgeAllMembersFromInstance: function(instanceNumber, callback, errback) {
+		var self = this;
+		self._keys(self.config.getKeyPrefix_usersInRoom()+":*", function(data) {
+			_.each(data, function(usersInRoomKey) {
+				var parts = usersInRoomKey.split(':');
+				var roomId = parts[1];
+				
+				// Look up the wgCityId so that we can figure out what instance the room belongs to.
+				self.getRoomData(roomId, 'wgCityId', function(wgCityId) {
+					// Only purge the users for the current instance.
+					// NOTE: This functionality is designed to mirror what's in ChatHelper.php::getServer().
+					var roomInstance = ((wgCityId % self.config.INSTANCE_COUNT) + 1);
+					if(roomInstance == instanceNumber){
+						logger.debug("\tCleaning users out of room with key: " + usersInRoomKey);
+						self._del(usersInRoomKey, self._redis.print, null, self._redis.print);
+					}
+				});
+			});
+		},
+		'Error: while trying to get all room membership lists: %error%',
+		errback);
+	},
 	
 	getUsersAllowedInPrivateRoom: function(roomId, callback, errback) {
 		this._hkeys(this.config.getKey_usersAllowedInPrivRoom(roomId), callback,
@@ -347,6 +362,13 @@ RedisStorage.prototype = {
 		var self = this;
 		self._rc.hgetall(key, function(err, result) {
 			self._redisCallback(err, result, callback, errorMsg, errback, both, formatResult);
+		});
+	},
+	
+	_get: function(key, callback, errorMsg, errback, both){
+		var self = this;
+		self._rc.get(key, function(err, result) {
+			self._redisCallback(err, result, callback, errorMsg, errback, both);
 		});
 	},
 	

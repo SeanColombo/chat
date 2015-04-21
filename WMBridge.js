@@ -179,46 +179,67 @@ var WMBridge = function() {
 //	var GIVECHATMOD_URL = "/?action=ajax&rs=ChatAjax&method=giveChatMod";
 }
 
-                                
+
 var authenticateUserCache = {};
 
+/**
+ * Since there are a variety of encodings for usernames (spaces, underscores, and different
+ * encodings of UTF8) it actually turns out to be a lot safer to store the keys by room
+ * and clear the cache for an entire room at once. Otherwise, a user with weird-enough
+ * UTF8 characters could avoid having their auth info purged from the cache.
+ */
 var clearAuthenticateCache = function(roomId, name) {
-	var cacheKey = name + "_" + roomId;
-        if(authenticateUserCache[cacheKey]) {
-		delete authenticateUserCache[cacheKey];
+	// We purge the entire room, rather than the specific user because of variations in the way
+	// some usernames are URL/UTF8 encoded when they connect vs. when the Admin sends their name
+	// to be banned.
+	if(authenticateUserCache[roomId]) {
+		delete authenticateUserCache[roomId];
 	}
 }
 
 WMBridge.prototype.authenticateUser = function(roomId, name, key, handshake, success, error) {
-        var cacheKey = name + "_" + roomId;
-        if(authenticateUserCache[cacheKey] && authenticateUserCache[cacheKey].key == key ) {
-                return success(authenticateUserCache[cacheKey].data);
-        }
+	// This cache is only secure because it's checking the .key alongside the roomId/username (roomId
+	// and name can be spoofed, but the forger would not also know the 'key' which MediaWiki generates).
+	var normalizedName = unescape(name).replace(/ /g, '_');
+	if(authenticateUserCache[roomId] && authenticateUserCache[roomId][normalizedName]
+		&& (authenticateUserCache[roomId][normalizedName].key == key) ) {
+		logger.debug("Used authenticateUserCache to grant acess to: '" + roomId +"' for user '" + normalizedName + "'");
+		return success(authenticateUserCache[roomId][normalizedName].data);
+	}
+	logger.debug("User '" + normalizedName + "' not found in cache for roomId '"+roomId+"'. Server will make auth request to MediaWiki.");
 
-        var requestUrl = getUrl( 'getUserInfo', {
-                roomId: roomId,
-                name: urlencode(name),
-                key: key
-        });
-        
-        logger.debug(requestUrl);
-		var ts = Math.round((new Date()).getTime() / 1000);
-		monitoring.incrEventCounter('authenticateUserRequest');
-		requestMW( 'GET', roomId, {}, requestUrl, handshake, function(data) {
-			authenticateUserCache[cacheKey] = {
-				data: data,
-				key: key,
-				ts: ts
-			};
-			success(data);
-		}, error );
+	var requestUrl = getUrl( 'getUserInfo', {
+		roomId: roomId,
+		name: urlencode(name),
+		key: key
+	});
+
+	logger.debug(requestUrl);
+	var ts = Math.round((new Date()).getTime() / 1000);
+	monitoring.incrEventCounter('authenticateUserRequest');
+	requestMW( 'GET', roomId, {}, requestUrl, handshake, function(data) {
+		if(!authenticateUserCache[roomId]){
+			// Initialize cache for room, if needed.
+			authenticateUserCache[roomId] = {};
+		}
+		// Cache entry for this user.
+		authenticateUserCache[roomId][normalizedName] = {
+			data: data,
+			key: key,
+			ts: ts
+		};
+		success(data);
+	}, error );
 }
 
+// Expire each user's info from the cache after 15 minutes.
 setInterval(function() {
 	var ts = Math.round((new Date()).getTime() / 1000);
-	for (i in authenticateUserCache){
-		if((ts - authenticateUserCache[i].ts) > 60*15) {
-			delete authenticateUserCache[i];
+	for (roomId in authenticateUserCache){
+		for(name in authenticateUserCache[roomId]){
+			if((ts - authenticateUserCache[roomId][name].ts) > 60*15) {
+				delete authenticateUserCache[roomId][name];
+			}
 		}
 	}
 }, 5000);
@@ -272,20 +293,19 @@ WMBridge.prototype.giveChatMod = function(roomId, name, handshake, key, success,
 
 var setUsersList = function(roomId, users) {
 	monitoring.incrEventCounter('broadcastUserList');
-        var requestUrl = getUrl('setUsersList', {
-                roomId: roomId,
-                token: config.TOKEN
-        });
+	var requestUrl = getUrl('setUsersList', {
+		roomId: roomId,
+		token: config.TOKEN
+	});
 
-        var userToSend = [];
+	var userToSend = [];
 
-        for(var userName in users) {
-                userToSend.push(userName);
-        }
+	for(var userName in users) {
+		userToSend.push(userName);
+	}
 
-        requestMW('POST', roomId, {users: userToSend}, requestUrl, null, function(data){
-
-        });
+	requestMW('POST', roomId, {users: userToSend}, requestUrl, null, function(data){
+	});
 }
 
 var setUsersListQueue = {};
@@ -296,10 +316,10 @@ WMBridge.prototype.setUsersList = function(roomId, users) {
 
 
 setInterval(function() {
-        for (i in setUsersListQueue){
-	        setUsersList(i, setUsersListQueue[i]);
+	for (i in setUsersListQueue){
+		setUsersList(i, setUsersListQueue[i]);
 		delete setUsersListQueue[i];
-        }
+	}
 }, 10000);
 
 

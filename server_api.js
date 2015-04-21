@@ -4,6 +4,8 @@
  *
  * NOTE: DO NOT START THIS SCRIPT DIRECTLY.  The API is controlled by
  * the same server.js file and its functions are just included from in there.
+ *
+ * This API server is used for filling requests from the MediaWiki server.
  */
 
 var config = require("./server_config.js"); // our node-chat config
@@ -16,7 +18,6 @@ var logger = require('./logger').logger;
 http.createServer(function (req, res) {
 	var reqData = urlUtil.parse(req.url, true);
 	apiDispatcher(req, res, reqData, function(result){
-		resg = res; // macbre: is this variable needed?
 		// SUCCESS CALLBACK
 		res.writeHead(200, {'Content-Type': 'application/json'});
 		res.write( JSON.stringify( result ) );
@@ -90,6 +91,7 @@ function api_getDefaultRoomId(cityId, extraDataString, type, serializedUsers, su
 		} catch(err) {}
 	}
 
+	// If getListOfRooms fails for this cityId, we will create a room for that wiki.
 	var createRoom = function() {
 		api_createChatRoom(cityId, extraDataString, type, users, successCallback, errorCallback);
 	};
@@ -97,7 +99,8 @@ function api_getDefaultRoomId(cityId, extraDataString, type, serializedUsers, su
 	storage.getListOfRooms(cityId, type, users,
 		function(roomIds) {
 			if(roomIds){
-				// For now, if there is more than one wiki in the room, we just grab the first as the default room.
+				// For now, if there is more than one room for the wiki, we just grab the first as the default room.
+				// NOTE: We still haven't implemented multiple rooms per wiki... might not become a Product priority.
 				roomId = roomIds[0];
 				storage.getRoomData(roomId, null,
 					function(roomData) {
@@ -127,7 +130,6 @@ function api_getDefaultRoomId(cityId, extraDataString, type, serializedUsers, su
  */
 function api_createChatRoom(cityId, extraDataString, type, users, successCallback, errorCallback) {
 	storage.createChatRoom(cityId, extraDataString, type, users, successCallback, errorCallback);
-	
 } // end api_createChatRoom()
 
 /**
