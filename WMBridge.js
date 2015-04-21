@@ -232,11 +232,14 @@ WMBridge.prototype.authenticateUser = function(roomId, name, key, handshake, suc
 	}, error );
 }
 
+// Expire each user's info from the cache after 15 minutes.
 setInterval(function() {
 	var ts = Math.round((new Date()).getTime() / 1000);
-	for (i in authenticateUserCache){
-		if((ts - authenticateUserCache[i].ts) > 60*15) {
-			delete authenticateUserCache[i];
+	for (roomId in authenticateUserCache){
+		for(name in authenticateUserCache[roomId]){
+			if((ts - authenticateUserCache[roomId][name].ts) > 60*15) {
+				delete authenticateUserCache[roomId][name];
+			}
 		}
 	}
 }, 5000);
