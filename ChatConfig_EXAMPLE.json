@@ -1,0 +1,57 @@
+{
+	"ChatCommunicationToken": "TODO:GENERATE SECRET TOKEN FOR EACH INSTALLATION HERE",
+	"MaxMessagesInBacklog": 50,
+	"NumMessagesToShowOnConnect": 10,
+	"prod":{
+		"MainChatServers": {
+			"comment:" ["NOTE... THIS prod EXAMPLE SHOWS A VERY SCALED INSTALLATION. IF YOU ARE JUST STARTING OUT, YOU COULD COPY THE dev SECTION's GUTS FOR prod"],
+			"1":["chathostname3:9001", "chathostname3:9002", "chathostname3:9003", "chathostname3:9004", "chathostname3:9005",
+			     "chathostname3:9006", "chathostname3:9007", "chathostname3:9008", "chathostname3:9009", "chathostname3:9010",
+			     "chathostname3:9011", "chathostname3:9012", "chathostname3:9013", "chathostname3:9014", "chathostname3:9015",
+			     "chathostname3:9016", "chathostname3:9017", "chathostname3:9018", "chathostname3:9019", "chathostname3:9020" ],
+			"2":["chathostname2:9001", "chathostname2:9002", "chathostname2:9003", "chathostname2:9004", "chathostname2:9005",
+			     "chathostname2:9006", "chathostname2:9007", "chathostname2:9008", "chathostname2:9009", "chathostname2:9010",
+			     "chathostname2:9011", "chathostname2:9012", "chathostname2:9013", "chathostname2:9014", "chathostname2:9015",
+			     "chathostname2:9016", "chathostname2:9017", "chathostname2:9018", "chathostname2:9019", "chathostname2:9020" ],
+			"3":["chathostname1:9001", "chathostname1:9002", "chathostname1:9003", "chathostname1:9004", "chathostname1:9005",
+			     "chathostname1:9006", "chathostname1:9007", "chathostname1:9008", "chathostname1:9009", "chathostname1:9010",
+			     "chathostname1:9011", "chathostname1:9012", "chathostname1:9013", "chathostname1:9014", "chathostname1:9015",
+			     "chathostname1:9016", "chathostname1:9017", "chathostname1:9018", "chathostname1:9019", "chathostname1:9020" ]
+		},
+		"ApiChatServers": {
+			"1":["chathostname3:9101", "chathostname3:9102", "chathostname3:9103", "chathostname3:9104", "chathostname3:9105",
+			     "chathostname3:9106", "chathostname3:9107", "chathostname3:9108", "chathostname3:9109", "chathostname3:9110",
+			     "chathostname3:9111", "chathostname3:9112", "chathostname3:9113", "chathostname3:9114", "chathostname3:9115",
+			     "chathostname3:9116", "chathostname3:9117", "chathostname3:9118", "chathostname3:9119", "chathostname3:9120" ],
+			"2":["chathostname2:9101", "chathostname2:9102", "chathostname2:9103", "chathostname2:9104", "chathostname2:9105",
+			     "chathostname2:9106", "chathostname2:9107", "chathostname2:9108", "chathostname2:9109", "chathostname2:9110",
+			     "chathostname2:9111", "chathostname2:9112", "chathostname2:9113", "chathostname2:9114", "chathostname2:9115",
+			     "chathostname2:9116", "chathostname2:9117", "chathostname2:9118", "chathostname2:9119", "chathostname2:9120" ],
+			"3":["chathostname1:9101", "chathostname1:9102", "chathostname1:9103", "chathostname1:9104", "chathostname1:9105",
+			     "chathostname1:9106", "chathostname1:9107", "chathostname1:9108", "chathostname1:9109", "chathostname1:9110",
+			     "chathostname1:9111", "chathostname1:9112", "chathostname1:9113", "chathostname1:9114", "chathostname1:9115",
+			     "chathostname1:9116", "chathostname1:9117", "chathostname1:9118", "chathostname1:9119", "chathostname1:9120" ]
+		},
+		"RedisServer": {
+			"1": "127.0.0.1:6379",
+			"2": "127.0.0.1:6379",
+			"3": "127.0.0.1:6379"
+		},
+		"ProxyServer": "127.0.0.1:6081"
+	},
+	"dev":{
+		"ChatHost": "localhost:8080",
+		"MainChatServers": {
+			"1":[ "localhost:9001" , "localhost:9002" ]
+		},
+		"ApiChatServers": {
+			"1":[ "localhost:9101", "localhost:9102" ]
+		},
+		"RedisServer": {
+			"1": "127.0.0.1:6379"
+		},
+		"ProxyServer": "127.0.0.1:6081"
+	},
+	"preview":{	}, // not needed in most installs. Only needed if you have a "preview" where you roll out pending releases.
+	"verify":{ }
+}
