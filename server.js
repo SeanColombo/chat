@@ -132,7 +132,7 @@ function startServer() {
 
 		clearChatBuffer(clientSocket);
 
-		logger.debug("Raw connection recieved. Waiting for authentication info from client.");
+		logger.debug("Raw connection received. Waiting for authentication info from client.");
 	});
 }
 
