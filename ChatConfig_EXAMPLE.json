@@ -52,6 +52,6 @@
 		},
 		"ProxyServer": "127.0.0.1:6081"
 	},
-	"preview":{	}, // not needed in most installs. Only needed if you have a "preview" where you roll out pending releases.
+	"preview":{	},
 	"verify":{ }
 }

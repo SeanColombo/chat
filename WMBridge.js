@@ -1,5 +1,13 @@
+
+// We allow other scripts to re-use this whole system (usually from sibling directories). If they
+// have already loaded their config, do not reload it.
+var config;
+if(typeof module.parent.exports.config != 'undefined'){
+	config = module.parent.exports.config;
+} else {
+	config = require("./server_config.js");
+}
 var monitoring = require('./monitoring.js');
-var config = require("./server_config.js");
 var qs = require('qs'); 
 var storage = require('./storage').redisFactory();
 var request = require('request');

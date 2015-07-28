@@ -1,5 +1,6 @@
 /** REQUIRES, OTHER SETUP **/
 var config = require("./server_config.js");
+exports.config = config; // to let submodules know that we've already loaded config.
 
 var app = require('express')()
 	, server = require('http').Server(app)

@@ -1,4 +1,11 @@
-var config = require("./server_config.js"); // our node-chat config
+// We allow other scripts to re-use this whole system (usually from sibling directories). If they
+// have already loaded their config, do not reload it.
+var config;
+if(typeof module.parent.exports.config != 'undefined'){
+	config = module.parent.exports.config;
+} else {
+	config = require("./server_config.js");
+}
 var http = require("http");
 var urlUtil = require('url');
 var logger = require('./logger').logger;

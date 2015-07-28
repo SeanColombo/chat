@@ -1,11 +1,18 @@
 /**
- * @author Jacek 'mech' Wozniak
+ * @author Jacek 'mech' Wozniak, Sean Colombo
  *
  * This file contains chat logging class and some socket.io logger related hacks.
  * 
  */
 
-var config = require("./server_config.js");
+// We allow other scripts to re-use this whole system (usually from sibling directories). If they
+// have already loaded their config, do not reload it.
+var config;
+if(typeof module.parent.exports.config != 'undefined'){
+	config = module.parent.exports.config;
+} else {
+	config = require("./server_config.js");
+}
 
 // available log levels
 var logLevels = {
