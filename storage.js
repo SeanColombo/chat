@@ -1,7 +1,17 @@
+// This will be logger's parent, so we need to copy the config from this script's parent.
+if(typeof module.parent.exports.config != 'undefined'){
+	this.config = module.parent.exports.config;
+} else {
+	this.config = require("./server_config.js");
+}
 var logger = require('./logger').logger;
 
 var RedisStorage = function() {
-	this.config = require("./server_config.js"); // our node-chat config
+	if(typeof module.parent.exports.config != 'undefined'){
+		this.config = module.parent.exports.config;
+	} else {
+		this.config = require("./server_config.js");
+	}
 	this.models = require('./models/models');
 	this._redis = require('redis');
 	this._rc = this._redis.createClient(this.config.REDIS_PORT, this.config.REDIS_HOST);

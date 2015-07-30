@@ -34,12 +34,16 @@ var fs = require('fs');
 
 argv.instance = argv.instance - 1;
 
-var configFileName = process.env.WIKIA_CONFIG_ROOT + '/ChatConfig.json';
+// Default to the current directory, but allow Environment variable to override that.
+var configRoot = ((typeof process.env.WIKIA_CONFIG_ROOT == "undefined") ? "." : process.env.WIKIA_CONFIG_ROOT);
+var configFileName = configRoot + '/ChatConfig.json';
 try{
 	var chatConfig = JSON.parse(fs.readFileSync(configFileName));
+
+	// Logger may not be loaded yet. Just use console logging.
+	console.log("Loaded config from '" + configFileName + "'");
 } catch(e){
 	if (e.code === 'ENOENT') {
-		// Logger may not be loaded yet. Just use console logging.
 		console.log("ERROR: Could not find config file: '" + configFileName + "'");
 	} else {
 		console.log("ERROR: Could not load config file: '" + configFileName + "'. Exception : ");

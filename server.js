@@ -10,7 +10,8 @@ var app = require('express')()
     , Backbone = require('backbone')
     , storage = require('./storage').redisFactory()
     , models = require('./models/models')
-    , mwBridge = require('./WMBridge.js').WMBridge
+// TODO: Refactor this to always call it siteBridge, but to make it so we'll use siteBridge by default and a mwBridge on Wikia (WMbridge is a typo, I think).
+    , mwBridge = require('./mwBridge.js').WMBridge // WMBridge was almost certainly a typo.. fix it!
     , loggerModule = require('./logger.js')
     , tracker = require('./tracker.js')
     , monitoring = require('./monitoring.js')

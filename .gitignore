@@ -22,3 +22,4 @@ _misc
 
 lib/composer/**/.git
 node_modules
+/ChatConfig.json
