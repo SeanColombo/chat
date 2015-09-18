@@ -57,7 +57,6 @@ var chatHost = chatConfig[argv.mode]['ChatHost'];
 var chatServer = chatConfig[argv.mode]['MainChatServers'][argv.basket][argv.instance].split(':');
 var apiServer = chatConfig[argv.mode]['ApiChatServers'][argv.basket][argv.instance].split(':');
 
-
 exports.FLASH_POLICY_PORT = 10843 + argv.instance;
 exports.CHAT_SERVER_HOST = chatServer[0];
 exports.CHAT_SERVER_PORT = parseInt(chatServer[1]);
@@ -67,6 +66,7 @@ exports.INSTANCE = argv.instance + 1;
 exports.INSTANCE_COUNT = instanceCount;
 exports.API_SERVER_HOST = apiServer[0];
 exports.API_SERVER_PORT = parseInt(apiServer[1]);
+exports.APP_SERVER_HOST = chatConfig['AppHostname']; // where the app server (eg: PHP server for the site) is.
 
 var redisServer = chatConfig[argv.mode]['RedisServer'][argv.basket].split(':');
 

@@ -350,7 +350,7 @@ RedisStorage.prototype = {
 		var self = this;
 		this._rc.info(function(err, result) {
 			self._redisCallback(err, result, callback, 
-					'Error while getting info: %error%', errback, both);			
+					'Error while getting info from redis: %error%', errback, both);			
 		});
 	},
 	

@@ -11,7 +11,8 @@ var app = require('express')()
     , storage = require('./storage').redisFactory()
     , models = require('./models/models')
 // TODO: Refactor this to always call it siteBridge, but to make it so we'll use siteBridge by default and a mwBridge on Wikia (WMbridge is a typo, I think).
-    , mwBridge = require('./mwBridge.js').WMBridge // WMBridge was almost certainly a typo.. fix it!
+	, siteBridge = require('./siteBridge.js').SiteBridge // WMBridge was almost certainly a typo.. fix it!
+    //, mwBridge = require('./mwBridge.js').WMBridge // WMBridge was almost certainly a typo.. fix it!
     , loggerModule = require('./logger.js')
     , tracker = require('./tracker.js')
     , monitoring = require('./monitoring.js')
@@ -95,6 +96,7 @@ function startServer() {
 
 	// Every time this server gets a connection, it will do this setup for that new client socket.
 	io.on('connection', function(clientSocket){
+logger.info("Connection attempt received."); // TODO: REMOVE
 
 		console.log("connection");
 		console.log(clientSocket.handshake);
@@ -247,7 +249,7 @@ function openPrivateRoom(client, ioSockets, data){
 }
 
 /**
- * After the initial connection, the client will be expected to send its auth
+ * <s>After the initial connection,</s>(I think this is first now) the client will be expected to send its auth
  * info (essentially: the Wikia authentication cookies) so that we can then
  * use this info to verify with the Wikia apaches that the user is connected
  * and what their rights are.
@@ -258,7 +260,7 @@ function openPrivateRoom(client, ioSockets, data){
  * are used - since users could be banned on one wiki and not another).
  */
 function authConnection(socket, next){
-	logger.debug("Authentication info recieved from client. Verifying with Wikia MediaWiki app server...");
+	logger.debug("Authentication info recieved from client. Verifying with app server (eg: Wikia MediaWiki or Elsewhere PHP)...");
 	// Need to auth with the correct wiki. Lookup the hostname for the chat in redis.
 	handshakeData = socket.handshake;
 
@@ -274,8 +276,8 @@ function authConnection(socket, next){
 	var name = handshakeData.query.name;
 	var key = handshakeData.query.key;
 
+	// This will get called with the data that the siteBridge (eg: chat_nodeInterface.php) returns about the user.
 	var callback = function(data) {
-
 		var usernameOk = (data.username_encoded == name) || (unescape(data.username) == unescape(name))
 		logger.debug("auth test: " + data.username_encoded + "==" + data.username + "==" + unescape(data.username) + "==" + name);
 
@@ -331,8 +333,8 @@ function authConnection(socket, next){
 		}
 	};
 
-	mwBridge.authenticateUser(roomId, name, key, handshakeData, callback, function(){
-		logger.error("User failed authentication: Wrong call to media wiki");
+	siteBridge.authenticateUser(roomId, name, key, handshakeData, callback, function(){
+		logger.error("User failed authentication: Error in call to app server (eg: MediaWiki)");
 		//authcallback(null, false); // error first callback style
 		next(new Error('User failed authentication (2)'));
 	});
@@ -554,7 +556,7 @@ function broadcastUserListToMediaWiki(client, removeClient){
 		}
 		logger.debug("Sending status update to media wiki")
 		if(!client.privateRoom) {
-			mwBridge.setUsersList(client.roomId, users);
+			siteBridge.setUsersList(client.roomId, users);
 		}
 	});
 } // end api_getUsersInRoom()
@@ -657,7 +659,7 @@ function ban(client, ioSockets, msg){
 	var time = banCommand.get('time');
 	var reason = banCommand.get('reason');
 
-	mwBridge.ban(client, userToBan, time, reason, function(data){
+	siteBridge.ban(client, userToBan, time, reason, function(data){
     	var kickEvent = new models.KickEvent({
     		kickedUserName: userToBan,
     		time: time,
@@ -689,7 +691,7 @@ function giveChatMod(client, ioSockets, msg){
 
 	var userNameToPromote = giveChatModCommand.get('userToPromote');
 
-	mwBridge.giveChatMod(client.roomId, userNameToPromote, client.handshake, client.userKey, function(data){
+	siteBridge.giveChatMod(client.roomId, userNameToPromote, client.handshake, client.userKey, function(data){
 		// Build a user that looks like the one that got banned... then kick them!
 
 		storage.getRoomState(client.roomId, function(nodeChatModel) {

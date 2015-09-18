@@ -134,6 +134,8 @@ var requestMW = function(method, roomId, postdata, query, handshake, callback, e
 			}
 
 			makeRequest(wikiHostname);
+		} else {
+			logger.debug("wgServer not found for roomId: " + roomId);
 		}
 	},
 	errorcallback);
