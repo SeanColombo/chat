@@ -67,6 +67,7 @@ exports.INSTANCE_COUNT = instanceCount;
 exports.API_SERVER_HOST = apiServer[0];
 exports.API_SERVER_PORT = parseInt(apiServer[1]);
 exports.APP_SERVER_HOST = chatConfig['AppHostname']; // where the app server (eg: PHP server for the site) is.
+exports.SITEBRIDGE_SCRIPT_NAME = chatConfig['SiteBridgeScriptName'];
 
 var redisServer = chatConfig[argv.mode]['RedisServer'][argv.basket].split(':');
 

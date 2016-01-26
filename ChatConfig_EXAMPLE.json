@@ -3,6 +3,7 @@
 	"MaxMessagesInBacklog": 50,
 	"NumMessagesToShowOnConnect": 10,
 	"AppHostname": "localhost",
+	"SiteBridgeScriptName": "chat_nodeInterface.php",
 	"prod":{
 		"MainChatServers": {
 			"comment:" ["NOTE... THIS prod EXAMPLE SHOWS A VERY SCALED INSTALLATION. IF YOU ARE JUST STARTING OUT, YOU COULD COPY THE dev SECTION's GUTS FOR prod"],

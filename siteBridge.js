@@ -30,20 +30,19 @@ var logger = require('./logger').logger;
 var url = require('url');
 var urlencode = require("./lib/urlencode.js").urlencode;
 
+var siteConfig = this.config;
 
 /**
  * Function that returns the URL of the website endpoint for the given method.
  * This is used by all of the requests to the web server.
  */
 var getUrl = function(method, params) {
-	var base = "chat_nodeInterface.php?method=" + method + "&";
+	var base = siteConfig.SITEBRIDGE_SCRIPT_NAME + "?method=" + method + "&";
 	for(var key in params) {
 		base = base + key + "=" + params[key] + "&";
 	}
 	return base;
 };
-
-var siteConfig = this.config;
 
 // TODO: REFACTOR THIS NOT TO SAY "MW" SINCE MediaWiki ISN'T THE BACKEND FOR EVERYONE & THAT Bridge code diverges from this code a bit (no wgServer here).
 var requestMW = function(method, roomId, postdata, query, handshake, callback, errorcallback) {
